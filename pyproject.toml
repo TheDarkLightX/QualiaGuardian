@@ -1,0 +1,57 @@
+[build-system]
+requires = ["setuptools>=61.0"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "guardian-ai-tool"
+version = "0.0.1"
+authors = [
+  { name="AI Assistant", email="assistant@example.com" },
+]
+description = "Guardian: Code Quality & Security Analysis Tool"
+readme = "README.md"
+requires-python = ">=3.8"
+license = {text = "MIT License"} # Updated license format
+# packages = ["guardian"] # This was incorrect here
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "Operating System :: OS Independent",
+    "Development Status :: 1 - Planning",
+    "Intended Audience :: Developers",
+    "Topic :: Software Development :: Quality Assurance",
+    "Topic :: Software Development :: Testing",
+    "Topic :: Security",
+]
+# Add dependencies here as they are identified, e.g.
+dependencies = [
+  "radon",
+  "safety",
+  "pytest",
+  "numpy>=1.21.0",
+  "scipy>=1.7.0",
+  "scikit-learn>=1.0.0",
+  "mutmut>=2.4.0",
+  "ast-decompiler>=0.7.0",
+  "networkx>=2.6.0",
+  "matplotlib>=3.5.0",
+  "seaborn>=0.11.0",
+  "tqdm>=4.62.0",
+  "pydantic>=1.8.0",
+  # "click>=8.0.0", # Typer will manage its Click dependency
+  "typer[all]>=0.9.0", # Includes rich and other extras
+  "rich>=13.0.0", # Explicitly add rich as well for direct use
+  "PyYAML>=6.0", # Added for risk_classes.yml parsing in cli.py
+  "openai>=1.3.0", # Added for LLM interaction
+]
+
+[project.scripts]
+guardian = "guardian.cli:main"
+
+[tool.setuptools.packages.find]
+where = ["."]  # look in the current directory
+include = ["guardian*"] # include only the 'guardian' package and its subpackages
+exclude = ["dummy_project*"] # explicitly exclude dummy_project
+
+[project.urls]
+"Homepage" = "https://github.com/example/guardian-ai-tool" # Placeholder
+"Bug Tracker" = "https://github.com/example/guardian-ai-tool/issues" # Placeholder
