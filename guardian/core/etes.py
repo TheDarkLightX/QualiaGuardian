@@ -67,6 +67,7 @@ class OSQIWeightsConfig:
     w_code: float = 1.0
     w_sec: float = 1.5
     w_arch: float = 1.0
+    w_risk_robustness: float = 0.5 # New pillar for OSQI v1.5
 
 @dataclass
 class QualityConfig: # Renamed from ETESConfig

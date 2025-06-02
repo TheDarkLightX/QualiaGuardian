@@ -31,9 +31,11 @@ class OSQIWeights:
 class OSQIRawPillarsInput:
     """Raw inputs required to calculate the OSQI score."""
     betes_score: float = 0.0  # Already normalized (0-1)
-    raw_code_health_sub_metrics: Dict[str, float] = field(default_factory=dict)
-    raw_weighted_vulnerability_density: float = 0.0 # Normalized (0-1)
-    raw_architectural_violation_score: float = 0.0 # Normalized (0-1)
+    raw_code_health_sub_metrics: Dict[str, float] = field(default_factory=dict) # Will include shannon_entropy
+    raw_weighted_vulnerability_density: float = 0.0 # Input for Security Score
+    # raw_architectural_violation_score will be replaced by raw_algebraic_connectivity
+    raw_algebraic_connectivity: Optional[float] = None # New input for Architecture Score
+    raw_wasserstein_distance: Optional[float] = None # New input for Risk/Robustness Score
 
 @dataclass
 class OSQINormalizedPillars:
@@ -42,6 +44,7 @@ class OSQINormalizedPillars:
     code_health_score_c_hs: float = 0.0
     security_score_sec_s: float = 0.0
     architecture_score_arch_s: float = 0.0
+    risk_robustness_score: float = 0.0 # New normalized pillar
 
 @dataclass
 class OSQIResult:
@@ -55,22 +58,32 @@ class OSQIResult:
 
 
 class OSQICalculator:
-    """Calculates the Overall Software Quality Index (OSQI v1.0)."""
+    """Calculates the Overall Software Quality Index (OSQI v1.5)."""
 
-    def __init__(self, 
-                 osqi_weights: OSQIWeightsConfig, 
-                 chs_thresholds_path: str = "guardian_ai_tool/config/chs_thresholds.yml"):
+    # Default heuristic for W_1,90% if not provided or learned
+    DEFAULT_WASSERSTEIN_90TH_PERCENTILE = 1.0
+
+    def __init__(self,
+                 osqi_weights: OSQIWeightsConfig,
+                 chs_thresholds_path: str = "guardian_ai_tool/config/chs_thresholds.yml",
+                 wasserstein_90th_percentile: Optional[float] = None):
         """
         Initializes the OSQI calculator.
 
         Args:
             osqi_weights: Configuration for OSQI component weights.
             chs_thresholds_path: Path to the YAML file containing thresholds for CHS sub-metrics.
+            wasserstein_90th_percentile: The 90th percentile of Wasserstein distances, used for normalization.
+                                           If None, a default heuristic is used.
         """
         self.weights = osqi_weights
         self.chs_thresholds_path = chs_thresholds_path
         self.chs_thresholds: Dict[str, Any] = {}
         self._load_chs_thresholds()
+        self.wasserstein_90th_percentile_heuristic = wasserstein_90th_percentile if wasserstein_90th_percentile is not None else self.DEFAULT_WASSERSTEIN_90TH_PERCENTILE
+        if self.wasserstein_90th_percentile_heuristic <= 0:
+            logger.warning(f"Wasserstein 90th percentile heuristic is <= 0 ({self.wasserstein_90th_percentile_heuristic}). Defaulting to {self.DEFAULT_WASSERSTEIN_90TH_PERCENTILE}.")
+            self.wasserstein_90th_percentile_heuristic = self.DEFAULT_WASSERSTEIN_90TH_PERCENTILE
 
     def _load_chs_thresholds(self):
         try:
@@ -170,9 +183,9 @@ class OSQICalculator:
         c_hs = product ** (1.0 / len(normalized_sub_scores))
         return max(0.0, min(c_hs, 1.0)) # Ensure 0-1
 
-    def calculate(self, inputs: OSQIRawPillarsInput, project_language: str) -> OSQIResult:
+    def calculate(self, inputs: OSQIRawPillarsInput, project_language: str) -> OSQIResult: # Add raw_shannon_entropy to inputs
         """
-        Calculates the OSQI score and its components.
+        Calculates the OSQI v1.5 score and its components.
 
         Args:
             inputs: An OSQIRawPillarsInput object containing all necessary raw values.
@@ -188,19 +201,38 @@ class OSQICalculator:
         betes_score = max(0.0, min(1.0, inputs.betes_score))
 
         c_hs = self._calculate_code_health_score_c_hs(
-            inputs.raw_code_health_sub_metrics,
+            inputs.raw_code_health_sub_metrics, # This dict should now include 'shannon_entropy'
             project_language
         )
         
         sec_s = max(0.0, min(1.0, 1.0 - inputs.raw_weighted_vulnerability_density))
         
-        arch_s = max(0.0, min(1.0, 1.0 - inputs.raw_architectural_violation_score))
+        # Architecture Score from Algebraic Connectivity
+        if inputs.raw_algebraic_connectivity is not None:
+            # Ensure lambda_2 is non-negative before tanh, though it should be.
+            # tanh maps [0, inf) to [0, 1)
+            arch_s = math.tanh(max(0, inputs.raw_algebraic_connectivity))
+        else:
+            arch_s = 0.5 # Default if not provided
+        arch_s = max(0.0, min(1.0, arch_s))
+
+        # Risk/Robustness Score from Wasserstein Distance
+        if inputs.raw_wasserstein_distance is not None:
+            # Normalize: W' = 1 - (W / W_90%)
+            # Score is higher if W is small (less drift)
+            normalized_w_drift = inputs.raw_wasserstein_distance / self.wasserstein_90th_percentile_heuristic
+            risk_robustness_score = 1.0 - normalized_w_drift
+        else:
+            risk_robustness_score = 0.5 # Default if not provided (neutral)
+        risk_robustness_score = max(0.0, min(1.0, risk_robustness_score))
+
 
         normalized_pillars = OSQINormalizedPillars(
             betes_score=betes_score,
             code_health_score_c_hs=c_hs,
             security_score_sec_s=sec_s,
-            architecture_score_arch_s=arch_s
+            architecture_score_arch_s=arch_s,
+            risk_robustness_score=risk_robustness_score
         )
 
         # 2. Calculate final OSQI (Weighted Geometric Mean)
@@ -208,13 +240,15 @@ class OSQICalculator:
             normalized_pillars.betes_score,
             normalized_pillars.code_health_score_c_hs,
             normalized_pillars.security_score_sec_s,
-            normalized_pillars.architecture_score_arch_s
+            normalized_pillars.architecture_score_arch_s,
+            normalized_pillars.risk_robustness_score
         ]
         current_weights = [
             self.weights.w_test,
             self.weights.w_code,
             self.weights.w_sec,
-            self.weights.w_arch
+            self.weights.w_arch,
+            self.weights.w_risk_robustness # Ensure this exists in OSQIWeightsConfig
         ]
         sum_of_weights = sum(current_weights)
         
@@ -276,33 +310,47 @@ if __name__ == "__main__":
     logging.basicConfig(level=logging.INFO, format='%(levelname)s: %(message)s')
     logger.info("Testing OSQI Calculator...")
 
-    # Dummy config and inputs
-    test_osqi_weights = OSQIWeightsConfig(w_test=2, w_code=1, w_sec=1.5, w_arch=1)
+    # Dummy config and inputs for OSQI v1.5
+    test_osqi_weights = OSQIWeightsConfig(
+        w_test=2.0,
+        w_code=1.0,
+        w_sec=1.5,
+        w_arch=1.0,
+        w_risk_robustness=0.5 # Added new weight
+    )
     
-    # Create a dummy chs_thresholds.yml for testing
+    # Create a dummy chs_thresholds.yml for testing, including shannon_entropy
     dummy_chs_threshold_file = "dummy_chs_thresholds.yml"
     dummy_chs_content = {
         "python": {
             "cyclomatic_complexity": {"ideal_max": 5, "acceptable_max": 10, "poor_min": 15},
-            "duplication_percentage": {"ideal_max": 3.0, "acceptable_max": 10.0, "poor_min": 25.0}
+            "duplication_percentage": {"ideal_max": 3.0, "acceptable_max": 10.0, "poor_min": 25.0},
+            "shannon_entropy": {"ideal_max": 2.5, "acceptable_max": 3.5, "poor_min": 4.5} # Added
         }
     }
     with open(dummy_chs_threshold_file, 'w') as f:
         yaml.dump(dummy_chs_content, f)
 
-    calculator = OSQICalculator(osqi_weights=test_osqi_weights, chs_thresholds_path=dummy_chs_threshold_file)
-
-    test_inputs = OSQIRawPillarsInput(
-        betes_score=0.85,
-        raw_code_health_sub_metrics={
-            "cyclomatic_complexity": 7,  # Should be > 0.5, < 1.0
-            "duplication_percentage": 5.0 # Should be > 0.5, < 1.0
-        },
-        raw_weighted_vulnerability_density=0.1, # Sec_S should be 0.9
-        raw_architectural_violation_score=0.05  # Arch_S should be 0.95
+    # Initialize calculator with new weight and potentially W_90 heuristic
+    calculator = OSQICalculator(
+        osqi_weights=test_osqi_weights,
+        chs_thresholds_path=dummy_chs_threshold_file,
+        wasserstein_90th_percentile=1.0 # Example heuristic
     )
 
-    result = calculator.calculate(test_inputs, project_language="python")
+    test_inputs_v1_5 = OSQIRawPillarsInput(
+        betes_score=0.85,
+        raw_code_health_sub_metrics={
+            "cyclomatic_complexity": 7,    # Normalized score: (10-7)/(10-5) * 0.5 + 0.5 = 0.75 * 0.5 + 0.5 = 0.875 (approx)
+            "duplication_percentage": 5.0, # Normalized score: (10-5)/(10-3) * 0.5 + 0.5 = 0.714 * 0.5 + 0.5 = 0.857 (approx)
+            "shannon_entropy": 3.0         # Normalized score: (3.5-3)/(3.5-2.5) * 0.5 + 0.5 = 0.5 * 0.5 + 0.5 = 0.75
+        },
+        raw_weighted_vulnerability_density=0.1, # Sec_S = 0.9
+        raw_algebraic_connectivity=1.5,         # Arch_S = tanh(1.5) approx 0.905
+        raw_wasserstein_distance=0.2            # RiskRobustness = 1 - (0.2/1.0) = 0.8
+    )
+
+    result = calculator.calculate(test_inputs_v1_5, project_language="python")
     
     logger.info(f"OSQI Calculation Result:")
     logger.info(f"  Raw Inputs: {result.raw_pillars_input}")
@@ -323,11 +371,16 @@ if __name__ == "__main__":
     logger.info(f"Classification (Financial): {classification_financial}")
 
     # Test case: one pillar is zero
-    test_inputs_zero_sec = OSQIRawPillarsInput(
+    test_inputs_zero_sec = OSQIRawPillarsInput( # Test with one pillar being zero
         betes_score=0.85,
-        raw_code_health_sub_metrics={"cyclomatic_complexity": 7, "duplication_percentage": 5.0},
-        raw_weighted_vulnerability_density=1.0, # Sec_S will be 0
-        raw_architectural_violation_score=0.05
+        raw_code_health_sub_metrics={
+            "cyclomatic_complexity": 7,
+            "duplication_percentage": 5.0,
+            "shannon_entropy": 3.0
+        },
+        raw_weighted_vulnerability_density=1.0, # Results in Sec_S = 0
+        raw_algebraic_connectivity=1.5,
+        raw_wasserstein_distance=0.2
     )
     result_zero_sec = calculator.calculate(test_inputs_zero_sec, project_language="python")
     logger.info(f"OSQI with Zero Security Pillar: {result_zero_sec.osqi_score:.4f}")

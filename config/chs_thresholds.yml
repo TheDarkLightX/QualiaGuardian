@@ -22,7 +22,12 @@ python:
     acceptable_max: 10.0 # Score 0.5 if raw_value == 10.0%
     poor_min: 25.0     # Score 0.0 if raw_value >= 25.0%
 
-  # Example for a metric where higher is better (e.g., maintainability index if not already 0-100)
+  shannon_entropy: # Lower is better
+    ideal_max: 2.5     # Score 1.0 if raw_value <= 2.5
+    acceptable_max: 3.5 # Score 0.5 if raw_value == 3.5
+    poor_min: 4.5       # Score 0.0 if raw_value >= 4.5
+
+# Example for a metric where higher is better (e.g., maintainability index if not already 0-100)
   # maintainability_index: # Assuming higher is better, scale 0-100
   #   poor_min_raw: 0      # Raw value at which normalized score is 0.0
   #   acceptable_min_raw: 60 # Raw value at which normalized score is 0.5
