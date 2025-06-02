@@ -43,6 +43,7 @@ dependencies = [
   "PyYAML>=6.0", # Added for risk_classes.yml parsing in cli.py
   "openai>=1.3.0", # Added for LLM interaction
   "gudhi>=3.8.0", # Added for Persistent Homology sensor
+  "POT>=0.9.0",   # Added as a dependency for gudhi.wasserstein
 ]
 
 [project.scripts]
