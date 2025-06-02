@@ -875,6 +875,66 @@ class HistoryManager:
             logger.error(f"Failed to record action outcome for player {player_id}, action {action_id}")
             return False
 
+    def add_xp_for_agent_action(self, player_id: str, xp_to_add: int, action_id_for_context: Optional[str] = None) -> bool:
+        """
+        Adds XP to a player, updates level, and checks for level-up badges.
+        This is specifically for XP awarded from agent actions based on credible gain.
+        Does not handle streak logic directly, as agent actions might not be daily user interactions.
+        Assumes last_active_ts is updated by other means if agent activity counts for streaks.
+
+        Args:
+            player_id: The ID of the player (agent).
+            xp_to_add: The amount of XP to add.
+            action_id_for_context: Optional string describing the action for logging.
+
+        Returns:
+            True if XP addition and updates were successful, False otherwise.
+        """
+        if xp_to_add <= 0:
+            return True # Nothing to add
+
+        player_data_row = self._execute_query("SELECT current_xp, current_level FROM players WHERE player_id = ?", (player_id,), fetch_one=True)
+        if not player_data_row:
+            logger.error(f"Cannot add XP: Player {player_id} not found.")
+            return False
+
+        current_xp = player_data_row["current_xp"]
+        current_level = player_data_row["current_level"]
+
+        new_xp = current_xp + xp_to_add
+        new_level = self._calculate_level(new_xp)
+
+        # We don't update last_active_ts or streak here, assuming agent actions are different from user commands.
+        # If agent actions should update streaks, that logic would need to be integrated or called separately.
+        update_player_sql = "UPDATE players SET current_xp = ?, current_level = ? WHERE player_id = ?"
+        if not self._execute_query(update_player_sql, (new_xp, new_level, player_id), commit=True):
+            logger.error(f"Failed to update XP/Level for player {player_id} after agent action.")
+            return False
+        
+        logger.info(f"Agent action ({action_id_for_context or 'unknown'}) for player {player_id}: XP +{xp_to_add} -> {new_xp}. Level: {current_level} -> {new_level}.")
+
+        # Check for level-up badges
+        # We need more player_stats for _check_and_award_badges, like streak_days, last_active_ts
+        # For now, this simplified XP addition won't trigger all badge types.
+        # A more complete solution would fetch full player_stats or have _check_and_award_badges take minimal needed.
+        # Let's call it with what we have, understanding its limitations here.
+        player_stats_for_badge_check = {
+            "player_id": player_id, "username": player_id, # Assuming player_id is username for agent
+            "current_xp": new_xp, "current_level": new_level,
+            "streak_days": 0, "last_active_ts": int(time.time()) # Dummy values for streak/activity
+        }
+        # This won't have current_metrics or command_name from a typical run.
+        awarded_badge_xp = self._check_and_award_badges(player_id, command_name=f"agent_action_{action_id_for_context}", current_metrics={}, player_stats=player_stats_for_badge_check)
+
+        if awarded_badge_xp > 0: # If a level badge was awarded, XP might increase further
+            final_new_xp = new_xp + awarded_badge_xp
+            final_new_level = self._calculate_level(final_new_xp)
+            if not self._execute_query(update_player_sql, (final_new_xp, final_new_level, player_id), commit=True):
+                 logger.warning(f"Failed to update player stats after agent action badge XP for {player_id}")
+            logger.info(f"Player {player_id}: Agent action badge XP +{awarded_badge_xp} -> {final_new_xp}. New Level: {final_new_level}.")
+            
+        return True
+
     def close(self):
         """Closes the database connection."""
         if self._conn:

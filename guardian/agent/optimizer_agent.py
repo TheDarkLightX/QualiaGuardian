@@ -261,6 +261,22 @@ class OptimizerAgent:
                 verification_details_json=json.dumps(verification_details)
             )
             self.budget_left_cpu_minutes -= actual_cost_cpu
+            
+            if verification_passed and selected_action_profile:
+                # Award XP based on credible lower-bound gain
+                # selected_action_profile contains 'estimated_delta_q_credible_lower_bound'
+                credible_gain = selected_action_profile.get("estimated_delta_q_credible_lower_bound", 0.0)
+                if credible_gain > 0: # Only award XP for positive credible gain
+                    xp_from_action = int(1000 * credible_gain)
+                    logger.info(f"Action '{action_id}' successful with credible gain {credible_gain:.4f}. Awarding {xp_from_action} XP.")
+                    self.history_manager.add_xp_for_agent_action(
+                        player_id=self.player_id,
+                        xp_to_add=xp_from_action,
+                        action_id_for_context=action_id
+                    )
+                else:
+                    logger.info(f"Action '{action_id}' successful, but credible gain ({credible_gain:.4f}) not positive. No XP awarded from this rule.")
+
             logger.info(f"Budget left: {self.budget_left_cpu_minutes:.2f} CPU minutes.")
 
             # TODO: Implement reflection loop (Phase 1, Step 5 from blueprint)
