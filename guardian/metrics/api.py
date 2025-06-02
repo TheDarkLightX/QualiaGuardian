@@ -4,6 +4,7 @@ API for retrieving consolidated metrics from Guardian.
 import logging
 from typing import Optional, Dict, Any
 import json
+import math # Added for math.sqrt
 
 from guardian.history import HistoryManager
 
@@ -165,27 +166,51 @@ def get_available_actions(username: Optional[str] = None) -> Dict[str, Any]:
         posterior = action_posteriors.get(action_id)
         
         mean_delta_q = 0.0
+        variance_delta_q = 0.0 # Default variance if not present
+        std_dev_delta_q = 0.0
         mean_cost_cpu = 1.0 # Default to 1 to avoid division by zero if no posterior
         eqra_score = 0.0
 
         if posterior:
-            mean_delta_q = posterior.get("delta_q", {}).get("mean", 0.0)
-            mean_cost_cpu = posterior.get("cost_cpu_minutes", {}).get("mean", 1.0)
-            if mean_cost_cpu <= 0: # Avoid division by zero or negative cost issues
-                mean_cost_cpu = 1.0 # Or handle as an error/very low EQRA
+            delta_q_posterior = posterior.get("delta_q", {})
+            cost_posterior = posterior.get("cost_cpu_minutes", {})
+            
+            mean_delta_q = delta_q_posterior.get("mean", 0.0)
+            variance_delta_q = delta_q_posterior.get("variance", 0.0)
+            if variance_delta_q > 0:
+                std_dev_delta_q = math.sqrt(variance_delta_q)
+            
+            mean_cost_cpu = cost_posterior.get("mean", 1.0)
+            if mean_cost_cpu <= 1e-6: # Avoid division by zero or very small cost issues
+                logger.warning(f"Mean cost for action {action_id} is very low or zero ({mean_cost_cpu}). Setting to 1.0 for EQRA calculation.")
+                mean_cost_cpu = 1.0
+        
+        # Calculate risk-adjusted delta_q (credible lower-bound)
+        risk_adjusted_delta_q = mean_delta_q - 1.65 * std_dev_delta_q
         
         if mean_cost_cpu > 0:
-            eqra_score = mean_delta_q / mean_cost_cpu
+            # Ensure EQRA is not negative if risk_adjusted_delta_q is negative.
+            # The agent should ideally not pick actions with negative credible gain.
+            # For reporting, we can show the raw EQRA.
+            eqra_score = risk_adjusted_delta_q / mean_cost_cpu
         else:
-            eqra_score = -float('inf') # Or some other indicator of problematic cost
+            # This case should be rare due to the check above, but as a fallback:
+            eqra_score = -float('inf') if risk_adjusted_delta_q > 0 else 0
 
         output_actions[action_id] = {
             "description": base_info["description"],
-            "eqra_score": eqra_score,
-            "estimated_delta_q": mean_delta_q,
+            "eqra_score": eqra_score, # Risk-adjusted EQRA
+            "estimated_delta_q_mean": mean_delta_q, # Original mean
+            "estimated_delta_q_credible_lower_bound": risk_adjusted_delta_q,
             "estimated_cost_cpu_minutes": mean_cost_cpu,
-            "manifest_path": base_info["manifest_path"]
-            # Could also include variance here if Decision-Agent needs it
+            "manifest_path": base_info["manifest_path"],
+            "posterior_details": { # Optionally include full posterior for transparency
+                "delta_q_mean": mean_delta_q,
+                "delta_q_variance": variance_delta_q,
+                "cost_cpu_mean": mean_cost_cpu,
+                "cost_cpu_variance": posterior.get("cost_cpu_minutes", {}).get("variance", 0.0) if posterior else 0.0,
+                "count": posterior.get("delta_q", {}).get("count", 0) if posterior else 0
+            }
         }
         
     # TODO: Discover actions from a registry or manifests instead of hardcoding `defined_actions_info`.
