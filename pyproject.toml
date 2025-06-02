@@ -42,6 +42,7 @@ dependencies = [
   "rich>=13.0.0", # Explicitly add rich as well for direct use
   "PyYAML>=6.0", # Added for risk_classes.yml parsing in cli.py
   "openai>=1.3.0", # Added for LLM interaction
+  "gudhi>=3.8.0", # Added for Persistent Homology sensor
 ]
 
 [project.scripts]

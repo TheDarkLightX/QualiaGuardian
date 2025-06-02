@@ -34,14 +34,18 @@ QualiaGuardian is under active development. Key milestones achieved include:
     *   Mutation testing to assess test suite thoroughness (via `mutmut`).
 *   **Advanced Test Effectiveness Scoring:**
     *   **Original Test Effectiveness Score (TES):** A foundational metric for test suite effectiveness.
-    *   **Behavioral Evidence-based Test Effectiveness Score (bE-TES):** A more nuanced score defined as:
+    *   **Bounded Evolutionary Test-Effectiveness Score (bE-TES):** A more nuanced score defined as:
         *   **Bounded:** Every component is normalised to the 0 – 1 range, so the final score is always between 0 and 1.
-        *   **Evolutionary:** This means the score is designed to be improved autonomously through iterative cycles. QualiaGuardian employs "evolutionary-mutation-testing loops" where:
-            1.  The system runs mutation testing to identify weaknesses in the test suite (surviving mutants).
-            2.  It then uses this data to guide the generation or modification of tests (potentially via the Autonomous Optimizer Agent or other mechanisms like `SmartMutator`) to kill these surviving mutants.
-            3.  This iterative process "evolves" the test suite to become more effective over time, directly impacting and improving the bE-TES.
+        *   **Evolutionary:** This refers to the capability of QualiaGuardian (specifically through its `AdaptiveEMT` engine, currently under development as per Phase 2 of the Enhancement Plan) to perform **search-based optimization of the tests themselves**.
+            *   **Oracle:** Standard mutation testing tools (like `mutmut`, which is integrated) act as an "oracle" by generating code mutants and reporting which tests kill them.
+            *   **Search Engine:** The `AdaptiveEMT` layer is designed to function as a search engine (e.g., using Genetic Algorithms or Multi-Objective Evolutionary Algorithms). It aims to:
+                1.  Represent tests in a way that allows for automated modification (their "genome").
+                2.  Apply variation operators (e.g., mutating test assertions, crossover of test logic) to create new candidate tests.
+                3.  Evaluate these candidate tests based on a multi-objective fitness function (e.g., maximizing killed mutants, minimizing flakiness and execution time, maximizing behavioral coverage).
+                4.  Select the fittest tests to form the next generation, iteratively improving the test suite's effectiveness.
+            *   This evolutionary process of refining the tests directly drives improvements in the bE-TES. While the full `AdaptiveEMT` search engine is part of ongoing development, the bE-TES framework is designed to measure the outcome of such evolutionary improvements.
         *   **Test-Effectiveness Score:** It quantifies how well the test suite actually detects real or mutant faults, weighting in stability, behaviour coverage, and speed.
-        It incorporates mutation testing as follows:
+        It incorporates mutation testing (used as the oracle) as follows:
         *   Mutation Score (MS) = (killed mutants) / (non-equivalent mutants)
         *   Normalized MS (M') = minmax(MS, 0.6, 0.95)
         *   bE-TES Uplift (Δ bE-TES) ≈ ((M'+ΔM')B'TS')^(1/5) - (M'B'TS')^(1/5)
