@@ -1,0 +1,50 @@
+{
+  "etes_score": 1.0,
+  "etes_components": {
+    "mutation_score": 0.7235714285714285,
+    "evolution_gain": 227.1378983822172,
+    "assertion_iq": 1.0,
+    "behavior_coverage": 0.6666666666666666,
+    "speed_factor": 0.1638159586923558,
+    "insights": [
+      "Behavior coverage (0.67) below target (0.8)",
+      "Test execution speed needs optimization"
+    ]
+  },
+  "mutants_generated": 20,
+  "quality_metrics_standalone_test": {
+    "overall_quality": 0.8113237705239776,
+    "determinism": 0.9885614259853852,
+    "stability": 0.9740037464252967,
+    "clarity": 0.45,
+    "independence": 1.0
+  },
+  "evolution_analysis": {
+    "improvement_rate": 0.04018181818181819,
+    "trend_direction": "improving",
+    "convergence_detected": true
+  },
+  "comparison": {
+    "legacy_tes": 0.3966638711247328,
+    "etes_v2": 1.0,
+    "improvement": 0.6033361288752672,
+    "legacy_grade": "F",
+    "etes_grade": "A+",
+    "components": {
+      "mutation_score": 0.7235714285714285,
+      "evolution_gain": 227.1378983822172,
+      "assertion_iq": 1.0,
+      "behavior_coverage": 0.6666666666666666,
+      "speed_factor": 0.1638159586923558
+    },
+    "insights": [
+      "Mutation score (0.72) below target (0.8)",
+      "Behavior coverage (0.67) below target (0.9)",
+      "Test execution speed needs optimization"
+    ],
+    "recommendations": [
+      "E-TES v2.0 shows significant improvement - recommend migration",
+      "Strong evolution gain detected - test suite is improving"
+    ]
+  }
+}

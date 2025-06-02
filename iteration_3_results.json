@@ -1,0 +1,2423 @@
+Error calculating cyclomatic complexity: expected an indented block after function definition on line 1 (<unknown>, line 2)
+Error finding long elements: expected an indented block after function definition on line 1 (<unknown>, line 2)
+Error finding large classes: expected an indented block after function definition on line 1 (<unknown>, line 2)
+SyntaxError analyzing imports in ./tests/test_test_execution_pytest_runner.py: expected an indented block after function definition on line 1 (<unknown>, line 2)
+Error calculating cyclomatic complexity: expected an indented block after function definition on line 1 (<unknown>, line 2)
+Error finding long elements: expected an indented block after function definition on line 1 (<unknown>, line 2)
+Error finding large classes: expected an indented block after function definition on line 1 (<unknown>, line 2)
+SyntaxError analyzing imports in ./tests/test_evolution_adaptive_emt.py: expected an indented block after function definition on line 1 (<unknown>, line 2)
+SyntaxError analyzing imports in ./tests/test_test_execution_pytest_runner.py: expected an indented block after function definition on line 1 (<unknown>, line 2)
+SyntaxError analyzing imports in ./tests/test_evolution_adaptive_emt.py: expected an indented block after function definition on line 1 (<unknown>, line 2)
+Running pytest command: /home/trevormoc/Downloads/Qualia/guardian_ai_tool/.venv/bin/pytest .
+{
+  "project_path": ".",
+  "status": "analysis_complete",
+  "tes_score": 0,
+  "tes_grade": "F",
+  "metrics": {
+    "total_lines_of_code_python": 11852,
+    "python_files_analyzed": 55,
+    "average_cyclomatic_complexity": 0.0,
+    "long_functions_count": 176,
+    "large_classes_count": 19,
+    "unused_imports_count": 110,
+    "circular_dependencies_count": 1
+  },
+  "details": {
+    "long_functions_list": [
+      {
+        "name": "create_sample_test_suite_data",
+        "type": "function",
+        "lines": 29,
+        "lineno": 26,
+        "endline": 54,
+        "file": "test_etes_v2.py"
+      },
+      {
+        "name": "test_etes_calculator",
+        "type": "function",
+        "lines": 36,
+        "lineno": 77,
+        "endline": 112,
+        "file": "test_etes_v2.py"
+      },
+      {
+        "name": "test_smart_mutator",
+        "type": "function",
+        "lines": 43,
+        "lineno": 115,
+        "endline": 157,
+        "file": "test_etes_v2.py"
+      },
+      {
+        "name": "test_quality_factor",
+        "type": "function",
+        "lines": 48,
+        "lineno": 160,
+        "endline": 207,
+        "file": "test_etes_v2.py"
+      },
+      {
+        "name": "test_evolution_history",
+        "type": "function",
+        "lines": 55,
+        "lineno": 210,
+        "endline": 264,
+        "file": "test_etes_v2.py"
+      },
+      {
+        "name": "test_tes_vs_etes_comparison",
+        "type": "function",
+        "lines": 32,
+        "lineno": 267,
+        "endline": 298,
+        "file": "test_etes_v2.py"
+      },
+      {
+        "name": "run_comprehensive_test",
+        "type": "function",
+        "lines": 61,
+        "lineno": 301,
+        "endline": 361,
+        "file": "test_etes_v2.py"
+      },
+      {
+        "name": "demo_basic_etes",
+        "type": "function",
+        "lines": 71,
+        "lineno": 21,
+        "endline": 91,
+        "file": "demo_etes_v2.py"
+      },
+      {
+        "name": "demo_comparison",
+        "type": "function",
+        "lines": 55,
+        "lineno": 94,
+        "endline": 148,
+        "file": "demo_etes_v2.py"
+      },
+      {
+        "name": "demo_evolution_scenarios",
+        "type": "function",
+        "lines": 85,
+        "lineno": 151,
+        "endline": 235,
+        "file": "demo_etes_v2.py"
+      },
+      {
+        "name": "demo_configuration",
+        "type": "function",
+        "lines": 64,
+        "lineno": 238,
+        "endline": 301,
+        "file": "demo_etes_v2.py"
+      },
+      {
+        "name": "main",
+        "type": "function",
+        "lines": 43,
+        "lineno": 304,
+        "endline": 346,
+        "file": "demo_etes_v2.py"
+      },
+      {
+        "name": "run_complete_demo",
+        "type": "method",
+        "lines": 25,
+        "lineno": 44,
+        "endline": 68,
+        "file": "demo_complete_system.py"
+      },
+      {
+        "name": "_show_welcome",
+        "type": "method",
+        "lines": 21,
+        "lineno": 70,
+        "endline": 90,
+        "file": "demo_complete_system.py"
+      },
+      {
+        "name": "_show_system_overview",
+        "type": "method",
+        "lines": 38,
+        "lineno": 92,
+        "endline": 129,
+        "file": "demo_complete_system.py"
+      },
+      {
+        "name": "_select_mode",
+        "type": "method",
+        "lines": 40,
+        "lineno": 131,
+        "endline": 170,
+        "file": "demo_complete_system.py"
+      },
+      {
+        "name": "_demo_self_improvement",
+        "type": "method",
+        "lines": 45,
+        "lineno": 172,
+        "endline": 216,
+        "file": "demo_complete_system.py"
+      },
+      {
+        "name": "_demo_gamified_monitoring",
+        "type": "method",
+        "lines": 50,
+        "lineno": 218,
+        "endline": 267,
+        "file": "demo_complete_system.py"
+      },
+      {
+        "name": "_demo_ai_agent_simulation",
+        "type": "method",
+        "lines": 60,
+        "lineno": 269,
+        "endline": 328,
+        "file": "demo_complete_system.py"
+      },
+      {
+        "name": "_demo_complete_integration",
+        "type": "method",
+        "lines": 22,
+        "lineno": 330,
+        "endline": 351,
+        "file": "demo_complete_system.py"
+      },
+      {
+        "name": "_show_final_results",
+        "type": "method",
+        "lines": 33,
+        "lineno": 378,
+        "endline": 410,
+        "file": "demo_complete_system.py"
+      },
+      {
+        "name": "test_should_detect_all_function_types_when_analyzing_comprehensive_python_file",
+        "type": "method",
+        "lines": 80,
+        "lineno": 33,
+        "endline": 112,
+        "file": "tests/test_guardian_high_quality.py"
+      },
+      {
+        "name": "test_should_calculate_accurate_complexity_when_analyzing_nested_control_structures",
+        "type": "method",
+        "lines": 80,
+        "lineno": 118,
+        "endline": 197,
+        "file": "tests/test_guardian_high_quality.py"
+      },
+      {
+        "name": "test_should_detect_security_vulnerabilities_when_analyzing_unsafe_code",
+        "type": "method",
+        "lines": 84,
+        "lineno": 203,
+        "endline": 286,
+        "file": "tests/test_guardian_high_quality.py"
+      },
+      {
+        "name": "test_should_handle_malformed_python_gracefully_when_syntax_errors_present",
+        "type": "method",
+        "lines": 50,
+        "lineno": 292,
+        "endline": 341,
+        "file": "tests/test_guardian_high_quality.py"
+      },
+      {
+        "name": "test_should_detect_code_smells_when_analyzing_poor_quality_code",
+        "type": "method",
+        "lines": 117,
+        "lineno": 348,
+        "endline": 464,
+        "file": "tests/test_guardian_high_quality.py"
+      },
+      {
+        "name": "test_should_provide_comprehensive_analysis_when_analyzing_real_project",
+        "type": "method",
+        "lines": 199,
+        "lineno": 476,
+        "endline": 674,
+        "file": "tests/test_guardian_high_quality.py"
+      },
+      {
+        "name": "test_should_execute_tests_successfully_when_valid_test_suite_provided",
+        "type": "method",
+        "lines": 170,
+        "lineno": 718,
+        "endline": 887,
+        "file": "tests/test_guardian_high_quality.py"
+      },
+      {
+        "name": "test_function_length_calculation",
+        "type": "method",
+        "lines": 27,
+        "lineno": 261,
+        "endline": 287,
+        "file": "tests/test_static_analysis.py"
+      },
+      {
+        "name": "test_parameter_count_calculation",
+        "type": "method",
+        "lines": 29,
+        "lineno": 289,
+        "endline": 317,
+        "file": "tests/test_static_analysis.py"
+      },
+      {
+        "name": "test_large_class_detection",
+        "type": "method",
+        "lines": 41,
+        "lineno": 323,
+        "endline": 363,
+        "file": "tests/test_static_analysis.py"
+      },
+      {
+        "name": "test_long_function_detection",
+        "type": "method",
+        "lines": 29,
+        "lineno": 365,
+        "endline": 393,
+        "file": "tests/test_static_analysis.py"
+      },
+      {
+        "name": "test_complex_function_detection",
+        "type": "method",
+        "lines": 56,
+        "lineno": 395,
+        "endline": 450,
+        "file": "tests/test_static_analysis.py"
+      },
+      {
+        "name": "_create_mock_guardian_structure",
+        "type": "method",
+        "lines": 24,
+        "lineno": 299,
+        "endline": 322,
+        "file": "tests/test_guardian_self_improvement.py"
+      },
+      {
+        "name": "test_should_detect_all_smell_types_when_problematic_code_analyzed",
+        "type": "method",
+        "lines": 93,
+        "lineno": 362,
+        "endline": 454,
+        "file": "tests/test_static_analysis_comprehensive.py"
+      },
+      {
+        "name": "test_should_not_detect_smells_in_clean_code",
+        "type": "method",
+        "lines": 30,
+        "lineno": 456,
+        "endline": 485,
+        "file": "tests/test_static_analysis_comprehensive.py"
+      },
+      {
+        "name": "test_should_analyze_comprehensive_project_when_realistic_codebase_provided",
+        "type": "method",
+        "lines": 302,
+        "lineno": 127,
+        "endline": 428,
+        "file": "tests/test_guardian_quality_improvement.py"
+      },
+      {
+        "name": "test_should_execute_comprehensive_test_suite_successfully",
+        "type": "method",
+        "lines": 102,
+        "lineno": 462,
+        "endline": 563,
+        "file": "tests/test_guardian_quality_improvement.py"
+      },
+      {
+        "name": "setup_method",
+        "type": "method",
+        "lines": 26,
+        "lineno": 25,
+        "endline": 50,
+        "file": "tests/test_evolution_engine.py"
+      },
+      {
+        "name": "test_smart_mutant_generation",
+        "type": "method",
+        "lines": 35,
+        "lineno": 207,
+        "endline": 241,
+        "file": "tests/test_evolution_engine.py"
+      },
+      {
+        "name": "test_should_analyze_project_quality_when_developer_runs_basic_analysis",
+        "type": "method",
+        "lines": 69,
+        "lineno": 32,
+        "endline": 100,
+        "file": "tests/comprehensive/test_guardian_behaviors.py"
+      },
+      {
+        "name": "test_should_detect_security_issues_when_security_analyst_runs_security_scan",
+        "type": "method",
+        "lines": 57,
+        "lineno": 104,
+        "endline": 160,
+        "file": "tests/comprehensive/test_guardian_behaviors.py"
+      },
+      {
+        "name": "test_should_provide_actionable_recommendations_when_team_lead_reviews_quality_report",
+        "type": "method",
+        "lines": 106,
+        "lineno": 163,
+        "endline": 268,
+        "file": "tests/comprehensive/test_guardian_behaviors.py"
+      },
+      {
+        "name": "test_should_handle_empty_project_gracefully_when_analyzing_empty_directory",
+        "type": "method",
+        "lines": 21,
+        "lineno": 275,
+        "endline": 295,
+        "file": "tests/comprehensive/test_guardian_behaviors.py"
+      },
+      {
+        "name": "test_should_handle_large_project_efficiently_when_analyzing_many_files",
+        "type": "method",
+        "lines": 35,
+        "lineno": 299,
+        "endline": 333,
+        "file": "tests/comprehensive/test_guardian_behaviors.py"
+      },
+      {
+        "name": "test_should_provide_consistent_results_when_analyzing_same_project_multiple_times",
+        "type": "method",
+        "lines": 59,
+        "lineno": 339,
+        "endline": 397,
+        "file": "tests/comprehensive/test_guardian_behaviors.py"
+      },
+      {
+        "name": "test_should_complete_analysis_within_time_limit_when_analyzing_medium_project",
+        "type": "method",
+        "lines": 97,
+        "lineno": 406,
+        "endline": 502,
+        "file": "tests/comprehensive/test_guardian_behaviors.py"
+      },
+      {
+        "name": "test_should_show_evolution_gain_when_previous_score_provided",
+        "type": "method",
+        "lines": 36,
+        "lineno": 193,
+        "endline": 228,
+        "file": "tests/comprehensive/test_guardian_core_comprehensive.py"
+      },
+      {
+        "name": "test_should_analyze_python_file_comprehensively_when_complex_code_provided",
+        "type": "method",
+        "lines": 127,
+        "lineno": 275,
+        "endline": 401,
+        "file": "tests/comprehensive/test_guardian_core_comprehensive.py"
+      },
+      {
+        "name": "test_should_run_pytest_successfully_when_valid_tests_provided",
+        "type": "method",
+        "lines": 66,
+        "lineno": 408,
+        "endline": 473,
+        "file": "tests/comprehensive/test_guardian_core_comprehensive.py"
+      },
+      {
+        "name": "test_should_analyze_project_comprehensively_when_realistic_codebase_provided",
+        "type": "method",
+        "lines": 188,
+        "lineno": 240,
+        "endline": 427,
+        "file": "guardian/test_guardian_core.py"
+      },
+      {
+        "name": "test_should_execute_tests_successfully_when_valid_test_suite_provided",
+        "type": "method",
+        "lines": 67,
+        "lineno": 438,
+        "endline": 504,
+        "file": "guardian/test_guardian_core.py"
+      },
+      {
+        "name": "analyze_project",
+        "type": "function",
+        "lines": 304,
+        "lineno": 86,
+        "endline": 389,
+        "file": "guardian/cli.py"
+      },
+      {
+        "name": "main",
+        "type": "function",
+        "lines": 70,
+        "lineno": 391,
+        "endline": 460,
+        "file": "guardian/cli.py"
+      },
+      {
+        "name": "run_analysis",
+        "type": "function",
+        "lines": 39,
+        "lineno": 463,
+        "endline": 501,
+        "file": "guardian/cli.py"
+      },
+      {
+        "name": "calculate_quality_factor",
+        "type": "method",
+        "lines": 45,
+        "lineno": 52,
+        "endline": 96,
+        "file": "guardian/metrics/quality_factor.py"
+      },
+      {
+        "name": "_calculate_determinism",
+        "type": "method",
+        "lines": 33,
+        "lineno": 98,
+        "endline": 130,
+        "file": "guardian/metrics/quality_factor.py"
+      },
+      {
+        "name": "_calculate_stability",
+        "type": "method",
+        "lines": 37,
+        "lineno": 132,
+        "endline": 168,
+        "file": "guardian/metrics/quality_factor.py"
+      },
+      {
+        "name": "_calculate_clarity",
+        "type": "method",
+        "lines": 26,
+        "lineno": 170,
+        "endline": 195,
+        "file": "guardian/metrics/quality_factor.py"
+      },
+      {
+        "name": "_calculate_independence",
+        "type": "method",
+        "lines": 25,
+        "lineno": 197,
+        "endline": 221,
+        "file": "guardian/metrics/quality_factor.py"
+      },
+      {
+        "name": "_calculate_flakiness",
+        "type": "method",
+        "lines": 27,
+        "lineno": 223,
+        "endline": 249,
+        "file": "guardian/metrics/quality_factor.py"
+      },
+      {
+        "name": "_calculate_readability",
+        "type": "method",
+        "lines": 40,
+        "lineno": 251,
+        "endline": 290,
+        "file": "guardian/metrics/quality_factor.py"
+      },
+      {
+        "name": "_calculate_coupling",
+        "type": "method",
+        "lines": 29,
+        "lineno": 292,
+        "endline": 320,
+        "file": "guardian/metrics/quality_factor.py"
+      },
+      {
+        "name": "_calculate_complexity",
+        "type": "method",
+        "lines": 37,
+        "lineno": 322,
+        "endline": 358,
+        "file": "guardian/metrics/quality_factor.py"
+      },
+      {
+        "name": "_assess_naming_quality",
+        "type": "method",
+        "lines": 30,
+        "lineno": 360,
+        "endline": 389,
+        "file": "guardian/metrics/quality_factor.py"
+      },
+      {
+        "name": "_assess_comment_quality",
+        "type": "method",
+        "lines": 36,
+        "lineno": 391,
+        "endline": 426,
+        "file": "guardian/metrics/quality_factor.py"
+      },
+      {
+        "name": "_assess_test_structure",
+        "type": "method",
+        "lines": 35,
+        "lineno": 428,
+        "endline": 462,
+        "file": "guardian/metrics/quality_factor.py"
+      },
+      {
+        "name": "analyze_trends",
+        "type": "method",
+        "lines": 69,
+        "lineno": 98,
+        "endline": 166,
+        "file": "guardian/metrics/evolution_history.py"
+      },
+      {
+        "name": "get_insights",
+        "type": "method",
+        "lines": 42,
+        "lineno": 205,
+        "endline": 246,
+        "file": "guardian/metrics/evolution_history.py"
+      },
+      {
+        "name": "_analyze_component_trends",
+        "type": "method",
+        "lines": 24,
+        "lineno": 323,
+        "endline": 346,
+        "file": "guardian/metrics/evolution_history.py"
+      },
+      {
+        "name": "_predict_final_score",
+        "type": "method",
+        "lines": 22,
+        "lineno": 348,
+        "endline": 369,
+        "file": "guardian/metrics/evolution_history.py"
+      },
+      {
+        "name": "_init_database",
+        "type": "method",
+        "lines": 30,
+        "lineno": 390,
+        "endline": 419,
+        "file": "guardian/metrics/evolution_history.py"
+      },
+      {
+        "name": "_save_snapshot_to_db",
+        "type": "method",
+        "lines": 24,
+        "lineno": 421,
+        "endline": 444,
+        "file": "guardian/metrics/evolution_history.py"
+      },
+      {
+        "name": "_load_history",
+        "type": "method",
+        "lines": 42,
+        "lineno": 446,
+        "endline": 487,
+        "file": "guardian/metrics/evolution_history.py"
+      },
+      {
+        "name": "_export_csv",
+        "type": "method",
+        "lines": 23,
+        "lineno": 489,
+        "endline": 511,
+        "file": "guardian/metrics/evolution_history.py"
+      },
+      {
+        "name": "create",
+        "type": "method",
+        "lines": 41,
+        "lineno": 122,
+        "endline": 162,
+        "file": "guardian/self_improvement/console_interface.py"
+      },
+      {
+        "name": "print_header",
+        "type": "method",
+        "lines": 27,
+        "lineno": 191,
+        "endline": 217,
+        "file": "guardian/self_improvement/console_interface.py"
+      },
+      {
+        "name": "print_etes_score",
+        "type": "method",
+        "lines": 52,
+        "lineno": 234,
+        "endline": 285,
+        "file": "guardian/self_improvement/console_interface.py"
+      },
+      {
+        "name": "update",
+        "type": "method",
+        "lines": 27,
+        "lineno": 431,
+        "endline": 457,
+        "file": "guardian/self_improvement/console_interface.py"
+      },
+      {
+        "name": "run_guardian_self_improvement",
+        "type": "function",
+        "lines": 40,
+        "lineno": 433,
+        "endline": 472,
+        "file": "guardian/self_improvement/guardian_optimizer.py"
+      },
+      {
+        "name": "__init__",
+        "type": "method",
+        "lines": 22,
+        "lineno": 68,
+        "endline": 89,
+        "file": "guardian/self_improvement/guardian_optimizer.py"
+      },
+      {
+        "name": "_initialize_improvement_targets",
+        "type": "method",
+        "lines": 66,
+        "lineno": 91,
+        "endline": 156,
+        "file": "guardian/self_improvement/guardian_optimizer.py"
+      },
+      {
+        "name": "run_improvement_cycle",
+        "type": "method",
+        "lines": 60,
+        "lineno": 182,
+        "endline": 241,
+        "file": "guardian/self_improvement/guardian_optimizer.py"
+      },
+      {
+        "name": "_select_improvement_target",
+        "type": "method",
+        "lines": 27,
+        "lineno": 243,
+        "endline": 269,
+        "file": "guardian/self_improvement/guardian_optimizer.py"
+      },
+      {
+        "name": "_apply_improvements",
+        "type": "method",
+        "lines": 33,
+        "lineno": 271,
+        "endline": 303,
+        "file": "guardian/self_improvement/guardian_optimizer.py"
+      },
+      {
+        "name": "_extract_guardian_test_data",
+        "type": "method",
+        "lines": 21,
+        "lineno": 305,
+        "endline": 325,
+        "file": "guardian/self_improvement/guardian_optimizer.py"
+      },
+      {
+        "name": "_record_evolution_snapshot",
+        "type": "method",
+        "lines": 23,
+        "lineno": 364,
+        "endline": 386,
+        "file": "guardian/self_improvement/guardian_optimizer.py"
+      },
+      {
+        "name": "_display_iteration_result",
+        "type": "method",
+        "lines": 21,
+        "lineno": 388,
+        "endline": 408,
+        "file": "guardian/self_improvement/guardian_optimizer.py"
+      },
+      {
+        "name": "_initialize_achievements",
+        "type": "method",
+        "lines": 60,
+        "lineno": 90,
+        "endline": 149,
+        "file": "guardian/self_improvement/gamified_monitor.py"
+      },
+      {
+        "name": "update_progress",
+        "type": "method",
+        "lines": 39,
+        "lineno": 152,
+        "endline": 190,
+        "file": "guardian/self_improvement/gamified_monitor.py"
+      },
+      {
+        "name": "_check_achievements",
+        "type": "method",
+        "lines": 66,
+        "lineno": 192,
+        "endline": 257,
+        "file": "guardian/self_improvement/gamified_monitor.py"
+      },
+      {
+        "name": "display_dashboard",
+        "type": "method",
+        "lines": 38,
+        "lineno": 294,
+        "endline": 331,
+        "file": "guardian/self_improvement/gamified_monitor.py"
+      },
+      {
+        "name": "_save_progress",
+        "type": "method",
+        "lines": 31,
+        "lineno": 352,
+        "endline": 382,
+        "file": "guardian/self_improvement/gamified_monitor.py"
+      },
+      {
+        "name": "_load_progress",
+        "type": "method",
+        "lines": 30,
+        "lineno": 384,
+        "endline": 413,
+        "file": "guardian/self_improvement/gamified_monitor.py"
+      },
+      {
+        "name": "start_monitoring",
+        "type": "method",
+        "lines": 36,
+        "lineno": 429,
+        "endline": 464,
+        "file": "guardian/self_improvement/gamified_monitor.py"
+      },
+      {
+        "name": "run_pytest",
+        "type": "function",
+        "lines": 75,
+        "lineno": 6,
+        "endline": 80,
+        "file": "guardian/test_execution/pytest_runner.py"
+      },
+      {
+        "name": "check_dependencies_vulnerabilities",
+        "type": "function",
+        "lines": 157,
+        "lineno": 5,
+        "endline": 161,
+        "file": "guardian/analysis/security.py"
+      },
+      {
+        "name": "check_for_hardcoded_secrets",
+        "type": "function",
+        "lines": 57,
+        "lineno": 180,
+        "endline": 236,
+        "file": "guardian/analysis/security.py"
+      },
+      {
+        "name": "calculate_cyclomatic_complexity",
+        "type": "function",
+        "lines": 30,
+        "lineno": 19,
+        "endline": 48,
+        "file": "guardian/analysis/static.py"
+      },
+      {
+        "name": "find_long_elements",
+        "type": "function",
+        "lines": 33,
+        "lineno": 50,
+        "endline": 82,
+        "file": "guardian/analysis/static.py"
+      },
+      {
+        "name": "find_large_classes",
+        "type": "function",
+        "lines": 57,
+        "lineno": 84,
+        "endline": 140,
+        "file": "guardian/analysis/static.py"
+      },
+      {
+        "name": "analyze_imports",
+        "type": "function",
+        "lines": 48,
+        "lineno": 142,
+        "endline": 189,
+        "file": "guardian/analysis/static.py"
+      },
+      {
+        "name": "build_import_graph",
+        "type": "function",
+        "lines": 111,
+        "lineno": 198,
+        "endline": 308,
+        "file": "guardian/analysis/static.py"
+      },
+      {
+        "name": "find_circular_dependencies",
+        "type": "function",
+        "lines": 123,
+        "lineno": 310,
+        "endline": 432,
+        "file": "guardian/analysis/static.py"
+      },
+      {
+        "name": "find_unused_imports",
+        "type": "function",
+        "lines": 65,
+        "lineno": 434,
+        "endline": 498,
+        "file": "guardian/analysis/static.py"
+      },
+      {
+        "name": "analyze_file",
+        "type": "function",
+        "lines": 89,
+        "lineno": 500,
+        "endline": 588,
+        "file": "guardian/analysis/static.py"
+      },
+      {
+        "name": "detect_code_smells",
+        "type": "function",
+        "lines": 58,
+        "lineno": 591,
+        "endline": 648,
+        "file": "guardian/analysis/static.py"
+      },
+      {
+        "name": "calculate_etes",
+        "type": "method",
+        "lines": 61,
+        "lineno": 94,
+        "endline": 154,
+        "file": "guardian/core/etes.py"
+      },
+      {
+        "name": "_calculate_mutation_score",
+        "type": "method",
+        "lines": 27,
+        "lineno": 156,
+        "endline": 182,
+        "file": "guardian/core/etes.py"
+      },
+      {
+        "name": "_calculate_evolution_gain",
+        "type": "method",
+        "lines": 22,
+        "lineno": 184,
+        "endline": 205,
+        "file": "guardian/core/etes.py"
+      },
+      {
+        "name": "_calculate_assertion_iq",
+        "type": "method",
+        "lines": 42,
+        "lineno": 207,
+        "endline": 248,
+        "file": "guardian/core/etes.py"
+      },
+      {
+        "name": "_calculate_behavior_coverage",
+        "type": "method",
+        "lines": 31,
+        "lineno": 250,
+        "endline": 280,
+        "file": "guardian/core/etes.py"
+      },
+      {
+        "name": "calculate_tes",
+        "type": "function",
+        "lines": 73,
+        "lineno": 9,
+        "endline": 81,
+        "file": "guardian/core/tes.py"
+      },
+      {
+        "name": "calculate_etes_v2",
+        "type": "function",
+        "lines": 22,
+        "lineno": 176,
+        "endline": 197,
+        "file": "guardian/core/tes.py"
+      },
+      {
+        "name": "compare_tes_vs_etes",
+        "type": "function",
+        "lines": 50,
+        "lineno": 214,
+        "endline": 263,
+        "file": "guardian/core/tes.py"
+      },
+      {
+        "name": "_assertion_based_crossover",
+        "type": "method",
+        "lines": 41,
+        "lineno": 73,
+        "endline": 113,
+        "file": "guardian/evolution/operators.py"
+      },
+      {
+        "name": "_coverage_based_crossover",
+        "type": "method",
+        "lines": 32,
+        "lineno": 115,
+        "endline": 146,
+        "file": "guardian/evolution/operators.py"
+      },
+      {
+        "name": "_semantic_crossover",
+        "type": "method",
+        "lines": 36,
+        "lineno": 148,
+        "endline": 183,
+        "file": "guardian/evolution/operators.py"
+      },
+      {
+        "name": "_simple_copy_crossover",
+        "type": "method",
+        "lines": 32,
+        "lineno": 185,
+        "endline": 216,
+        "file": "guardian/evolution/operators.py"
+      },
+      {
+        "name": "_parse_test_structure",
+        "type": "method",
+        "lines": 30,
+        "lineno": 321,
+        "endline": 350,
+        "file": "guardian/evolution/operators.py"
+      },
+      {
+        "name": "_combine_structures",
+        "type": "method",
+        "lines": 28,
+        "lineno": 352,
+        "endline": 379,
+        "file": "guardian/evolution/operators.py"
+      },
+      {
+        "name": "_semantic_assertion_merge",
+        "type": "method",
+        "lines": 28,
+        "lineno": 392,
+        "endline": 419,
+        "file": "guardian/evolution/operators.py"
+      },
+      {
+        "name": "mutate",
+        "type": "method",
+        "lines": 22,
+        "lineno": 454,
+        "endline": 475,
+        "file": "guardian/evolution/operators.py"
+      },
+      {
+        "name": "_add_assertion_mutation",
+        "type": "method",
+        "lines": 21,
+        "lineno": 498,
+        "endline": 518,
+        "file": "guardian/evolution/operators.py"
+      },
+      {
+        "name": "_modify_assertion_mutation",
+        "type": "method",
+        "lines": 27,
+        "lineno": 520,
+        "endline": 546,
+        "file": "guardian/evolution/operators.py"
+      },
+      {
+        "name": "_add_boundary_test_mutation",
+        "type": "method",
+        "lines": 21,
+        "lineno": 548,
+        "endline": 568,
+        "file": "guardian/evolution/operators.py"
+      },
+      {
+        "name": "_add_exception_test_mutation",
+        "type": "method",
+        "lines": 21,
+        "lineno": 570,
+        "endline": 590,
+        "file": "guardian/evolution/operators.py"
+      },
+      {
+        "name": "_enhance_coverage_mutation",
+        "type": "method",
+        "lines": 21,
+        "lineno": 592,
+        "endline": 612,
+        "file": "guardian/evolution/operators.py"
+      },
+      {
+        "name": "__init__",
+        "type": "method",
+        "lines": 23,
+        "lineno": 31,
+        "endline": 53,
+        "file": "guardian/evolution/adaptive_emt.py"
+      },
+      {
+        "name": "initialize_population",
+        "type": "method",
+        "lines": 23,
+        "lineno": 55,
+        "endline": 77,
+        "file": "guardian/evolution/adaptive_emt.py"
+      },
+      {
+        "name": "evolve",
+        "type": "method",
+        "lines": 42,
+        "lineno": 79,
+        "endline": 120,
+        "file": "guardian/evolution/adaptive_emt.py"
+      },
+      {
+        "name": "_evaluate_population",
+        "type": "method",
+        "lines": 21,
+        "lineno": 122,
+        "endline": 142,
+        "file": "guardian/evolution/adaptive_emt.py"
+      },
+      {
+        "name": "_evaluate_individual",
+        "type": "method",
+        "lines": 26,
+        "lineno": 144,
+        "endline": 169,
+        "file": "guardian/evolution/adaptive_emt.py"
+      },
+      {
+        "name": "_evolve_generation",
+        "type": "method",
+        "lines": 36,
+        "lineno": 171,
+        "endline": 206,
+        "file": "guardian/evolution/adaptive_emt.py"
+      },
+      {
+        "name": "evaluate_population",
+        "type": "method",
+        "lines": 23,
+        "lineno": 70,
+        "endline": 92,
+        "file": "guardian/evolution/fitness.py"
+      },
+      {
+        "name": "_calculate_pareto_ranks",
+        "type": "method",
+        "lines": 39,
+        "lineno": 94,
+        "endline": 132,
+        "file": "guardian/evolution/fitness.py"
+      },
+      {
+        "name": "_calculate_crowding_distances",
+        "type": "method",
+        "lines": 46,
+        "lineno": 138,
+        "endline": 183,
+        "file": "guardian/evolution/fitness.py"
+      },
+      {
+        "name": "select_best",
+        "type": "method",
+        "lines": 23,
+        "lineno": 185,
+        "endline": 207,
+        "file": "guardian/evolution/fitness.py"
+      },
+      {
+        "name": "evaluate_individual",
+        "type": "method",
+        "lines": 37,
+        "lineno": 229,
+        "endline": 265,
+        "file": "guardian/evolution/fitness.py"
+      },
+      {
+        "name": "calculate_composite_fitness",
+        "type": "method",
+        "lines": 26,
+        "lineno": 267,
+        "endline": 292,
+        "file": "guardian/evolution/fitness.py"
+      },
+      {
+        "name": "_evaluate_mutation_killing",
+        "type": "method",
+        "lines": 23,
+        "lineno": 294,
+        "endline": 316,
+        "file": "guardian/evolution/fitness.py"
+      },
+      {
+        "name": "_evaluate_assertion_quality",
+        "type": "method",
+        "lines": 36,
+        "lineno": 331,
+        "endline": 366,
+        "file": "guardian/evolution/fitness.py"
+      },
+      {
+        "name": "_evaluate_coverage_breadth",
+        "type": "method",
+        "lines": 23,
+        "lineno": 368,
+        "endline": 390,
+        "file": "guardian/evolution/fitness.py"
+      },
+      {
+        "name": "_evaluate_maintainability",
+        "type": "method",
+        "lines": 27,
+        "lineno": 392,
+        "endline": 418,
+        "file": "guardian/evolution/fitness.py"
+      },
+      {
+        "name": "_evaluate_fault_detection",
+        "type": "method",
+        "lines": 31,
+        "lineno": 420,
+        "endline": 450,
+        "file": "guardian/evolution/fitness.py"
+      },
+      {
+        "name": "_test_kills_mutant",
+        "type": "method",
+        "lines": 24,
+        "lineno": 452,
+        "endline": 475,
+        "file": "guardian/evolution/fitness.py"
+      },
+      {
+        "name": "generate_smart_mutants",
+        "type": "method",
+        "lines": 32,
+        "lineno": 73,
+        "endline": 104,
+        "file": "guardian/evolution/smart_mutator.py"
+      },
+      {
+        "name": "_generate_file_mutants",
+        "type": "method",
+        "lines": 31,
+        "lineno": 106,
+        "endline": 136,
+        "file": "guardian/evolution/smart_mutator.py"
+      },
+      {
+        "name": "_apply_fault_patterns",
+        "type": "method",
+        "lines": 31,
+        "lineno": 138,
+        "endline": 168,
+        "file": "guardian/evolution/smart_mutator.py"
+      },
+      {
+        "name": "_generate_complexity_weighted_mutants",
+        "type": "method",
+        "lines": 21,
+        "lineno": 170,
+        "endline": 190,
+        "file": "guardian/evolution/smart_mutator.py"
+      },
+      {
+        "name": "_initialize_fault_patterns",
+        "type": "method",
+        "lines": 56,
+        "lineno": 239,
+        "endline": 294,
+        "file": "guardian/evolution/smart_mutator.py"
+      },
+      {
+        "name": "_mutate_complex_node",
+        "type": "method",
+        "lines": 25,
+        "lineno": 331,
+        "endline": 355,
+        "file": "guardian/evolution/smart_mutator.py"
+      },
+      {
+        "name": "_create_boundary_mutations",
+        "type": "method",
+        "lines": 39,
+        "lineno": 357,
+        "endline": 395,
+        "file": "guardian/evolution/smart_mutator.py"
+      },
+      {
+        "name": "_create_numeric_mutations",
+        "type": "method",
+        "lines": 35,
+        "lineno": 397,
+        "endline": 431,
+        "file": "guardian/evolution/smart_mutator.py"
+      },
+      {
+        "name": "_create_exception_type_mutations",
+        "type": "method",
+        "lines": 35,
+        "lineno": 454,
+        "endline": 488,
+        "file": "guardian/evolution/smart_mutator.py"
+      },
+      {
+        "name": "load_project_stats",
+        "type": "function",
+        "lines": 45,
+        "lineno": 18,
+        "endline": 62,
+        "file": "guardian/cli/history_manager.py"
+      },
+      {
+        "name": "update_stats_with_new_run",
+        "type": "function",
+        "lines": 86,
+        "lineno": 73,
+        "endline": 158,
+        "file": "guardian/cli/history_manager.py"
+      },
+      {
+        "name": "_format_human_readable",
+        "type": "method",
+        "lines": 38,
+        "lineno": 89,
+        "endline": 126,
+        "file": "guardian/cli/output_formatter.py"
+      },
+      {
+        "name": "_format_tes_scores",
+        "type": "method",
+        "lines": 25,
+        "lineno": 144,
+        "endline": 168,
+        "file": "guardian/cli/output_formatter.py"
+      },
+      {
+        "name": "_format_etes_scores",
+        "type": "method",
+        "lines": 50,
+        "lineno": 170,
+        "endline": 219,
+        "file": "guardian/cli/output_formatter.py"
+      },
+      {
+        "name": "_format_metrics",
+        "type": "method",
+        "lines": 60,
+        "lineno": 221,
+        "endline": 280,
+        "file": "guardian/cli/output_formatter.py"
+      },
+      {
+        "name": "_format_test_execution",
+        "type": "method",
+        "lines": 27,
+        "lineno": 282,
+        "endline": 308,
+        "file": "guardian/cli/output_formatter.py"
+      },
+      {
+        "name": "_format_security_analysis",
+        "type": "method",
+        "lines": 33,
+        "lineno": 310,
+        "endline": 342,
+        "file": "guardian/cli/output_formatter.py"
+      },
+      {
+        "name": "_format_critical_issues",
+        "type": "method",
+        "lines": 30,
+        "lineno": 344,
+        "endline": 373,
+        "file": "guardian/cli/output_formatter.py"
+      },
+      {
+        "name": "_format_recommendations",
+        "type": "method",
+        "lines": 42,
+        "lineno": 375,
+        "endline": 416,
+        "file": "guardian/cli/output_formatter.py"
+      },
+      {
+        "name": "format_table",
+        "type": "method",
+        "lines": 37,
+        "lineno": 483,
+        "endline": 519,
+        "file": "guardian/cli/output_formatter.py"
+      },
+      {
+        "name": "format_html",
+        "type": "method",
+        "lines": 45,
+        "lineno": 603,
+        "endline": 647,
+        "file": "guardian/cli/output_formatter.py"
+      },
+      {
+        "name": "main",
+        "type": "function",
+        "lines": 108,
+        "lineno": 520,
+        "endline": 627,
+        "file": "guardian/cli/analyzer.py"
+      },
+      {
+        "name": "analyze_project",
+        "type": "method",
+        "lines": 70,
+        "lineno": 50,
+        "endline": 119,
+        "file": "guardian/cli/analyzer.py"
+      },
+      {
+        "name": "_validate_inputs",
+        "type": "method",
+        "lines": 28,
+        "lineno": 122,
+        "endline": 149,
+        "file": "guardian/cli/analyzer.py"
+      },
+      {
+        "name": "_analyze_codebase",
+        "type": "method",
+        "lines": 68,
+        "lineno": 164,
+        "endline": 231,
+        "file": "guardian/cli/analyzer.py"
+      },
+      {
+        "name": "_analyze_single_file",
+        "type": "method",
+        "lines": 37,
+        "lineno": 234,
+        "endline": 270,
+        "file": "guardian/cli/analyzer.py"
+      },
+      {
+        "name": "_analyze_security",
+        "type": "method",
+        "lines": 67,
+        "lineno": 272,
+        "endline": 338,
+        "file": "guardian/cli/analyzer.py"
+      },
+      {
+        "name": "_analyze_user_stories",
+        "type": "method",
+        "lines": 24,
+        "lineno": 340,
+        "endline": 363,
+        "file": "guardian/cli/analyzer.py"
+      },
+      {
+        "name": "_calculate_tes_score",
+        "type": "method",
+        "lines": 40,
+        "lineno": 387,
+        "endline": 426,
+        "file": "guardian/cli/analyzer.py"
+      },
+      {
+        "name": "_calculate_etes_score",
+        "type": "method",
+        "lines": 72,
+        "lineno": 430,
+        "endline": 501,
+        "file": "guardian/cli/analyzer.py"
+      }
+    ],
+    "large_classes_details_list": [
+      {
+        "name": "CompleteSystemDemo",
+        "method_count": 13,
+        "lineno": 30,
+        "endline": 410,
+        "file": "demo_complete_system.py"
+      },
+      {
+        "name": "BigClassRegularMethods",
+        "method_count": 11,
+        "lineno": 9,
+        "endline": 20,
+        "file": "dummy_project/class_test.py"
+      },
+      {
+        "name": "TestETESCalculatorCalculations",
+        "method_count": 15,
+        "lineno": 104,
+        "endline": 337,
+        "file": "tests/test_etes_v2_comprehensive.py"
+      },
+      {
+        "name": "TestProjectAnalyzerCore",
+        "method_count": 15,
+        "lineno": 26,
+        "endline": 259,
+        "file": "tests/test_cli_comprehensive.py"
+      },
+      {
+        "name": "TestOutputFormatterCore",
+        "method_count": 12,
+        "lineno": 298,
+        "endline": 493,
+        "file": "tests/test_cli_comprehensive.py"
+      },
+      {
+        "name": "TestGuardianOptimizerCore",
+        "method_count": 19,
+        "lineno": 27,
+        "endline": 334,
+        "file": "tests/test_guardian_self_improvement.py"
+      },
+      {
+        "name": "TestStaticAnalysisCore",
+        "method_count": 21,
+        "lineno": 35,
+        "endline": 343,
+        "file": "tests/test_static_analysis_comprehensive.py"
+      },
+      {
+        "name": "QualityFactorCalculator",
+        "method_count": 16,
+        "lineno": 43,
+        "endline": 506,
+        "file": "guardian/metrics/quality_factor.py"
+      },
+      {
+        "name": "EvolutionHistoryTracker",
+        "method_count": 18,
+        "lineno": 63,
+        "endline": 511,
+        "file": "guardian/metrics/evolution_history.py"
+      },
+      {
+        "name": "BeautifulConsole",
+        "method_count": 14,
+        "lineno": 165,
+        "endline": 418,
+        "file": "guardian/self_improvement/console_interface.py"
+      },
+      {
+        "name": "GuardianOptimizer",
+        "method_count": 12,
+        "lineno": 60,
+        "endline": 429,
+        "file": "guardian/self_improvement/guardian_optimizer.py"
+      },
+      {
+        "name": "AchievementSystem",
+        "method_count": 13,
+        "lineno": 68,
+        "endline": 413,
+        "file": "guardian/self_improvement/gamified_monitor.py"
+      },
+      {
+        "name": "ETESCalculator",
+        "method_count": 13,
+        "lineno": 75,
+        "endline": 396,
+        "file": "guardian/core/etes.py"
+      },
+      {
+        "name": "CrossoverOperator",
+        "method_count": 19,
+        "lineno": 20,
+        "endline": 437,
+        "file": "guardian/evolution/operators.py"
+      },
+      {
+        "name": "AdaptiveEMT",
+        "method_count": 19,
+        "lineno": 23,
+        "endline": 357,
+        "file": "guardian/evolution/adaptive_emt.py"
+      },
+      {
+        "name": "FitnessEvaluator",
+        "method_count": 11,
+        "lineno": 210,
+        "endline": 487,
+        "file": "guardian/evolution/fitness.py"
+      },
+      {
+        "name": "SmartMutator",
+        "method_count": 17,
+        "lineno": 56,
+        "endline": 493,
+        "file": "guardian/evolution/smart_mutator.py"
+      },
+      {
+        "name": "OutputFormatter",
+        "method_count": 32,
+        "lineno": 48,
+        "endline": 647,
+        "file": "guardian/cli/output_formatter.py"
+      },
+      {
+        "name": "ProjectAnalyzer",
+        "method_count": 12,
+        "lineno": 34,
+        "endline": 516,
+        "file": "guardian/cli/analyzer.py"
+      }
+    ],
+    "unused_imports_details_list": [
+      {
+        "module": "guardian.core.etes",
+        "name": "ETESComponents",
+        "alias": null,
+        "lineno": 18,
+        "file": "test_etes_v2.py"
+      },
+      {
+        "module": "guardian.evolution.adaptive_emt",
+        "name": "AdaptiveEMT",
+        "alias": null,
+        "lineno": 20,
+        "file": "test_etes_v2.py"
+      },
+      {
+        "module": "json",
+        "name": "json",
+        "alias": null,
+        "lineno": 12,
+        "file": "demo_etes_v2.py"
+      },
+      {
+        "module": "threading",
+        "name": "threading",
+        "alias": null,
+        "lineno": 17,
+        "file": "demo_complete_system.py"
+      },
+      {
+        "module": "typing",
+        "name": "Dict",
+        "alias": null,
+        "lineno": 19,
+        "file": "demo_complete_system.py"
+      },
+      {
+        "module": "typing",
+        "name": "Any",
+        "alias": null,
+        "lineno": 19,
+        "file": "demo_complete_system.py"
+      },
+      {
+        "module": "guardian.self_improvement.gamified_monitor",
+        "name": "GamifiedMonitor",
+        "alias": null,
+        "lineno": 25,
+        "file": "demo_complete_system.py"
+      },
+      {
+        "module": "guardian.core.etes",
+        "name": "ETESCalculator",
+        "alias": null,
+        "lineno": 27,
+        "file": "demo_complete_system.py"
+      },
+      {
+        "module": "guardian.core.etes",
+        "name": "ETESConfig",
+        "alias": null,
+        "lineno": 27,
+        "file": "demo_complete_system.py"
+      },
+      {
+        "module": "datetime",
+        "name": "datetime",
+        "alias": null,
+        "lineno": 4,
+        "file": "dummy_project/app.py"
+      },
+      {
+        "module": ".",
+        "name": "circ_a",
+        "alias": null,
+        "lineno": 2,
+        "file": "dummy_project/circ_b.py"
+      },
+      {
+        "module": "unittest.mock",
+        "name": "Mock",
+        "alias": null,
+        "lineno": 13,
+        "file": "tests/test_etes_v2_comprehensive.py"
+      },
+      {
+        "module": "unittest.mock",
+        "name": "patch",
+        "alias": null,
+        "lineno": 13,
+        "file": "tests/test_etes_v2_comprehensive.py"
+      },
+      {
+        "module": "unittest.mock",
+        "name": "MagicMock",
+        "alias": null,
+        "lineno": 13,
+        "file": "tests/test_etes_v2_comprehensive.py"
+      },
+      {
+        "module": "typing",
+        "name": "List",
+        "alias": null,
+        "lineno": 14,
+        "file": "tests/test_etes_v2_comprehensive.py"
+      },
+      {
+        "module": "guardian.core.tes",
+        "name": "get_tes_grade",
+        "alias": null,
+        "lineno": 20,
+        "file": "tests/test_etes_v2_comprehensive.py"
+      },
+      {
+        "module": "guardian.core.tes",
+        "name": "get_etes_grade",
+        "alias": null,
+        "lineno": 20,
+        "file": "tests/test_etes_v2_comprehensive.py"
+      },
+      {
+        "module": "unittest.mock",
+        "name": "Mock",
+        "alias": null,
+        "lineno": 14,
+        "file": "tests/test_cli_comprehensive.py"
+      },
+      {
+        "module": "unittest.mock",
+        "name": "MagicMock",
+        "alias": null,
+        "lineno": 14,
+        "file": "tests/test_cli_comprehensive.py"
+      },
+      {
+        "module": "io",
+        "name": "StringIO",
+        "alias": null,
+        "lineno": 16,
+        "file": "tests/test_cli_comprehensive.py"
+      },
+      {
+        "module": "typing",
+        "name": "Dict",
+        "alias": null,
+        "lineno": 17,
+        "file": "tests/test_cli_comprehensive.py"
+      },
+      {
+        "module": "typing",
+        "name": "Any",
+        "alias": null,
+        "lineno": 17,
+        "file": "tests/test_cli_comprehensive.py"
+      },
+      {
+        "module": "unittest.mock",
+        "name": "Mock",
+        "alias": null,
+        "lineno": 18,
+        "file": "tests/test_guardian_high_quality.py"
+      },
+      {
+        "module": "unittest.mock",
+        "name": "patch",
+        "alias": null,
+        "lineno": 18,
+        "file": "tests/test_guardian_high_quality.py"
+      },
+      {
+        "module": "json",
+        "name": "json",
+        "alias": null,
+        "lineno": 19,
+        "file": "tests/test_guardian_high_quality.py"
+      },
+      {
+        "module": "guardian.analysis.static",
+        "name": "get_function_metrics",
+        "alias": null,
+        "lineno": 17,
+        "file": "tests/test_static_analysis.py"
+      },
+      {
+        "module": "unittest.mock",
+        "name": "MagicMock",
+        "alias": null,
+        "lineno": 14,
+        "file": "tests/test_guardian_self_improvement.py"
+      },
+      {
+        "module": "typing",
+        "name": "Dict",
+        "alias": null,
+        "lineno": 16,
+        "file": "tests/test_guardian_self_improvement.py"
+      },
+      {
+        "module": "typing",
+        "name": "Any",
+        "alias": null,
+        "lineno": 16,
+        "file": "tests/test_guardian_self_improvement.py"
+      },
+      {
+        "module": "typing",
+        "name": "List",
+        "alias": null,
+        "lineno": 16,
+        "file": "tests/test_guardian_self_improvement.py"
+      },
+      {
+        "module": "guardian.core.etes",
+        "name": "ETESCalculator",
+        "alias": null,
+        "lineno": 24,
+        "file": "tests/test_guardian_self_improvement.py"
+      },
+      {
+        "module": "unittest.mock",
+        "name": "Mock",
+        "alias": null,
+        "lineno": 14,
+        "file": "tests/test_static_analysis_comprehensive.py"
+      },
+      {
+        "module": "unittest.mock",
+        "name": "mock_open",
+        "alias": null,
+        "lineno": 14,
+        "file": "tests/test_static_analysis_comprehensive.py"
+      },
+      {
+        "module": "typing",
+        "name": "Dict",
+        "alias": null,
+        "lineno": 15,
+        "file": "tests/test_static_analysis_comprehensive.py"
+      },
+      {
+        "module": "typing",
+        "name": "Any",
+        "alias": null,
+        "lineno": 15,
+        "file": "tests/test_static_analysis_comprehensive.py"
+      },
+      {
+        "module": "typing",
+        "name": "List",
+        "alias": null,
+        "lineno": 15,
+        "file": "tests/test_static_analysis_comprehensive.py"
+      },
+      {
+        "module": "guardian.analysis.static",
+        "name": "get_function_metrics",
+        "alias": null,
+        "lineno": 20,
+        "file": "tests/test_static_analysis_comprehensive.py"
+      },
+      {
+        "module": "unittest.mock",
+        "name": "Mock",
+        "alias": null,
+        "lineno": 15,
+        "file": "tests/test_guardian_quality_improvement.py"
+      },
+      {
+        "module": "unittest.mock",
+        "name": "patch",
+        "alias": null,
+        "lineno": 15,
+        "file": "tests/test_guardian_quality_improvement.py"
+      },
+      {
+        "module": "unittest.mock",
+        "name": "Mock",
+        "alias": null,
+        "lineno": 19,
+        "file": "tests/comprehensive/test_guardian_behaviors.py"
+      },
+      {
+        "module": "unittest.mock",
+        "name": "patch",
+        "alias": null,
+        "lineno": 19,
+        "file": "tests/comprehensive/test_guardian_behaviors.py"
+      },
+      {
+        "module": "guardian.core.tes",
+        "name": "calculate_tes",
+        "alias": null,
+        "lineno": 26,
+        "file": "tests/comprehensive/test_guardian_behaviors.py"
+      },
+      {
+        "module": "guardian.core.tes",
+        "name": "calculate_etes_v2",
+        "alias": null,
+        "lineno": 26,
+        "file": "tests/comprehensive/test_guardian_behaviors.py"
+      },
+      {
+        "module": "time",
+        "name": "time",
+        "alias": null,
+        "lineno": 15,
+        "file": "tests/comprehensive/test_guardian_core_comprehensive.py"
+      },
+      {
+        "module": "unittest.mock",
+        "name": "Mock",
+        "alias": null,
+        "lineno": 20,
+        "file": "tests/comprehensive/test_guardian_core_comprehensive.py"
+      },
+      {
+        "module": "unittest.mock",
+        "name": "patch",
+        "alias": null,
+        "lineno": 20,
+        "file": "tests/comprehensive/test_guardian_core_comprehensive.py"
+      },
+      {
+        "module": "unittest.mock",
+        "name": "MagicMock",
+        "alias": null,
+        "lineno": 20,
+        "file": "tests/comprehensive/test_guardian_core_comprehensive.py"
+      },
+      {
+        "module": "json",
+        "name": "json",
+        "alias": null,
+        "lineno": 21,
+        "file": "tests/comprehensive/test_guardian_core_comprehensive.py"
+      },
+      {
+        "module": "guardian.core.etes",
+        "name": "ETESCalculator",
+        "alias": null,
+        "lineno": 28,
+        "file": "tests/comprehensive/test_guardian_core_comprehensive.py"
+      },
+      {
+        "module": "guardian.core.etes",
+        "name": "ETESConfig",
+        "alias": null,
+        "lineno": 28,
+        "file": "tests/comprehensive/test_guardian_core_comprehensive.py"
+      },
+      {
+        "module": "os",
+        "name": "os",
+        "alias": null,
+        "lineno": 12,
+        "file": "guardian/test_guardian_core.py"
+      },
+      {
+        "module": "unittest.mock",
+        "name": "Mock",
+        "alias": null,
+        "lineno": 14,
+        "file": "guardian/test_guardian_core.py"
+      },
+      {
+        "module": "unittest.mock",
+        "name": "patch",
+        "alias": null,
+        "lineno": 14,
+        "file": "guardian/test_guardian_core.py"
+      },
+      {
+        "module": "json",
+        "name": "json",
+        "alias": null,
+        "lineno": 12,
+        "file": "guardian/cli.py"
+      },
+      {
+        "module": "typing",
+        "name": "Optional",
+        "alias": null,
+        "lineno": 13,
+        "file": "guardian/cli.py"
+      },
+      {
+        "module": "typing",
+        "name": "List",
+        "alias": null,
+        "lineno": 12,
+        "file": "guardian/metrics/quality_factor.py"
+      },
+      {
+        "module": "typing",
+        "name": "Optional",
+        "alias": null,
+        "lineno": 12,
+        "file": "guardian/metrics/quality_factor.py"
+      },
+      {
+        "module": "typing",
+        "name": "Tuple",
+        "alias": null,
+        "lineno": 12,
+        "file": "guardian/metrics/quality_factor.py"
+      },
+      {
+        "module": "time",
+        "name": "time",
+        "alias": null,
+        "lineno": 15,
+        "file": "guardian/metrics/quality_factor.py"
+      },
+      {
+        "module": ".quality_factor",
+        "name": "QualityFactorCalculator",
+        "alias": null,
+        "lineno": 7,
+        "file": "guardian/metrics/__init__.py"
+      },
+      {
+        "module": ".evolution_history",
+        "name": "EvolutionHistoryTracker",
+        "alias": null,
+        "lineno": 8,
+        "file": "guardian/metrics/__init__.py"
+      },
+      {
+        "module": "typing",
+        "name": "Tuple",
+        "alias": null,
+        "lineno": 11,
+        "file": "guardian/metrics/evolution_history.py"
+      },
+      {
+        "module": "datetime",
+        "name": "datetime",
+        "alias": null,
+        "lineno": 13,
+        "file": "guardian/metrics/evolution_history.py"
+      },
+      {
+        "module": "datetime",
+        "name": "timedelta",
+        "alias": null,
+        "lineno": 13,
+        "file": "guardian/metrics/evolution_history.py"
+      },
+      {
+        "module": "math",
+        "name": "math",
+        "alias": null,
+        "lineno": 11,
+        "file": "guardian/self_improvement/console_interface.py"
+      },
+      {
+        "module": "typing",
+        "name": "Dict",
+        "alias": null,
+        "lineno": 12,
+        "file": "guardian/self_improvement/console_interface.py"
+      },
+      {
+        "module": "typing",
+        "name": "Optional",
+        "alias": null,
+        "lineno": 12,
+        "file": "guardian/self_improvement/console_interface.py"
+      },
+      {
+        "module": "dataclasses",
+        "name": "dataclass",
+        "alias": null,
+        "lineno": 13,
+        "file": "guardian/self_improvement/console_interface.py"
+      },
+      {
+        "module": "enum",
+        "name": "Enum",
+        "alias": null,
+        "lineno": 14,
+        "file": "guardian/self_improvement/console_interface.py"
+      },
+      {
+        "module": ".guardian_optimizer",
+        "name": "GuardianOptimizer",
+        "alias": null,
+        "lineno": 7,
+        "file": "guardian/self_improvement/__init__.py"
+      },
+      {
+        "module": ".guardian_optimizer",
+        "name": "SelectionMode",
+        "alias": null,
+        "lineno": 7,
+        "file": "guardian/self_improvement/__init__.py"
+      },
+      {
+        "module": ".guardian_optimizer",
+        "name": "run_guardian_self_improvement",
+        "alias": null,
+        "lineno": 7,
+        "file": "guardian/self_improvement/__init__.py"
+      },
+      {
+        "module": ".gamified_monitor",
+        "name": "GamifiedMonitor",
+        "alias": null,
+        "lineno": 8,
+        "file": "guardian/self_improvement/__init__.py"
+      },
+      {
+        "module": ".gamified_monitor",
+        "name": "AchievementSystem",
+        "alias": null,
+        "lineno": 8,
+        "file": "guardian/self_improvement/__init__.py"
+      },
+      {
+        "module": ".console_interface",
+        "name": "BeautifulConsole",
+        "alias": null,
+        "lineno": 9,
+        "file": "guardian/self_improvement/__init__.py"
+      },
+      {
+        "module": ".console_interface",
+        "name": "ProgressTracker",
+        "alias": null,
+        "lineno": 9,
+        "file": "guardian/self_improvement/__init__.py"
+      },
+      {
+        "module": "json",
+        "name": "json",
+        "alias": null,
+        "lineno": 11,
+        "file": "guardian/self_improvement/guardian_optimizer.py"
+      },
+      {
+        "module": "guardian.evolution.adaptive_emt",
+        "name": "AdaptiveEMT",
+        "alias": null,
+        "lineno": 22,
+        "file": "guardian/self_improvement/guardian_optimizer.py"
+      },
+      {
+        "module": "guardian.evolution.adaptive_emt",
+        "name": "TestIndividual",
+        "alias": null,
+        "lineno": 22,
+        "file": "guardian/self_improvement/guardian_optimizer.py"
+      },
+      {
+        "module": "guardian.evolution.smart_mutator",
+        "name": "SmartMutator",
+        "alias": null,
+        "lineno": 23,
+        "file": "guardian/self_improvement/guardian_optimizer.py"
+      },
+      {
+        "module": "typing",
+        "name": "Dict",
+        "alias": null,
+        "lineno": 10,
+        "file": "guardian/self_improvement/gamified_monitor.py"
+      },
+      {
+        "module": "typing",
+        "name": "Tuple",
+        "alias": null,
+        "lineno": 10,
+        "file": "guardian/self_improvement/gamified_monitor.py"
+      },
+      {
+        "module": "radon.complexity",
+        "name": "cc_rank",
+        "alias": null,
+        "lineno": 5,
+        "file": "guardian/analysis/static.py"
+      },
+      {
+        "module": "json",
+        "name": "json",
+        "alias": null,
+        "lineno": 14,
+        "file": "guardian/core/etes.py"
+      },
+      {
+        "module": "ast",
+        "name": "ast",
+        "alias": null,
+        "lineno": 9,
+        "file": "guardian/evolution/operators.py"
+      },
+      {
+        "module": "typing",
+        "name": "Optional",
+        "alias": null,
+        "lineno": 11,
+        "file": "guardian/evolution/operators.py"
+      },
+      {
+        "module": "dataclasses",
+        "name": "dataclass",
+        "alias": null,
+        "lineno": 12,
+        "file": "guardian/evolution/operators.py"
+      },
+      {
+        "module": "re",
+        "name": "re",
+        "alias": null,
+        "lineno": 13,
+        "file": "guardian/evolution/operators.py"
+      },
+      {
+        "module": ".adaptive_emt",
+        "name": "AdaptiveEMT",
+        "alias": null,
+        "lineno": 7,
+        "file": "guardian/evolution/__init__.py"
+      },
+      {
+        "module": ".smart_mutator",
+        "name": "SmartMutator",
+        "alias": null,
+        "lineno": 8,
+        "file": "guardian/evolution/__init__.py"
+      },
+      {
+        "module": ".operators",
+        "name": "CrossoverOperator",
+        "alias": null,
+        "lineno": 9,
+        "file": "guardian/evolution/__init__.py"
+      },
+      {
+        "module": ".operators",
+        "name": "MutationOperator",
+        "alias": null,
+        "lineno": 9,
+        "file": "guardian/evolution/__init__.py"
+      },
+      {
+        "module": ".fitness",
+        "name": "FitnessEvaluator",
+        "alias": null,
+        "lineno": 10,
+        "file": "guardian/evolution/__init__.py"
+      },
+      {
+        "module": ".fitness",
+        "name": "MultiObjectiveFitness",
+        "alias": null,
+        "lineno": 10,
+        "file": "guardian/evolution/__init__.py"
+      },
+      {
+        "module": "typing",
+        "name": "Tuple",
+        "alias": null,
+        "lineno": 10,
+        "file": "guardian/evolution/adaptive_emt.py"
+      },
+      {
+        "module": "time",
+        "name": "time",
+        "alias": null,
+        "lineno": 12,
+        "file": "guardian/evolution/adaptive_emt.py"
+      },
+      {
+        "module": ".fitness",
+        "name": "MultiObjectiveFitness",
+        "alias": null,
+        "lineno": 18,
+        "file": "guardian/evolution/adaptive_emt.py"
+      },
+      {
+        "module": "random",
+        "name": "random",
+        "alias": null,
+        "lineno": 9,
+        "file": "guardian/evolution/smart_mutator.py"
+      },
+      {
+        "module": "typing",
+        "name": "Any",
+        "alias": null,
+        "lineno": 11,
+        "file": "guardian/evolution/smart_mutator.py"
+      },
+      {
+        "module": "typing",
+        "name": "Set",
+        "alias": null,
+        "lineno": 11,
+        "file": "guardian/evolution/smart_mutator.py"
+      },
+      {
+        "module": ".analyzer",
+        "name": "ProjectAnalyzer",
+        "alias": null,
+        "lineno": 7,
+        "file": "guardian/cli/__init__.py"
+      },
+      {
+        "module": ".output_formatter",
+        "name": "OutputFormatter",
+        "alias": null,
+        "lineno": 8,
+        "file": "guardian/cli/__init__.py"
+      },
+      {
+        "module": ".output_formatter",
+        "name": "FormattingConfig",
+        "alias": null,
+        "lineno": 8,
+        "file": "guardian/cli/__init__.py"
+      },
+      {
+        "module": ".output_formatter",
+        "name": "OutputLevel",
+        "alias": null,
+        "lineno": 8,
+        "file": "guardian/cli/__init__.py"
+      },
+      {
+        "module": "typing",
+        "name": "List",
+        "alias": null,
+        "lineno": 6,
+        "file": "guardian/cli/history_manager.py"
+      },
+      {
+        "module": "typing",
+        "name": "Optional",
+        "alias": null,
+        "lineno": 6,
+        "file": "guardian/cli/history_manager.py"
+      },
+      {
+        "module": "typing",
+        "name": "List",
+        "alias": null,
+        "lineno": 9,
+        "file": "guardian/cli/analyzer.py"
+      },
+      {
+        "module": "pathlib",
+        "name": "Path",
+        "alias": null,
+        "lineno": 10,
+        "file": "guardian/cli/analyzer.py"
+      },
+      {
+        "module": "guardian.analysis.static",
+        "name": "analyze_imports",
+        "alias": null,
+        "lineno": 12,
+        "file": "guardian/cli/analyzer.py"
+      },
+      {
+        "module": "guardian.core.etes",
+        "name": "ETESConfig",
+        "alias": null,
+        "lineno": 29,
+        "file": "guardian/cli/analyzer.py"
+      }
+    ],
+    "circular_dependencies_list": [
+      [
+        "dummy_project.circ_a",
+        "dummy_project.circ_b"
+      ]
+    ]
+  },
+  "tes_components": {
+    "mutation_score": 0.0,
+    "assertion_density_raw": 0.0,
+    "behavior_coverage_calculated": 0.0,
+    "speed_factor_calculated": 0.09165902841429881,
+    "total_user_stories": 0,
+    "covered_user_stories": 0,
+    "avg_test_execution_time_ms": 991.0
+  },
+  "etes_v2_enabled": true,
+  "security_analysis": {
+    "dependency_vulnerabilities_count": 0,
+    "dependency_check_message": "No vulnerabilities found",
+    "eval_usage_count": 21,
+    "hardcoded_secrets_count": 19
+  },
+  "total_user_stories": 0,
+  "covered_user_stories": 0,
+  "test_execution_summary": {
+    "pytest_ran_successfully": false,
+    "pytest_exit_code": 2,
+    "pytest_duration_seconds": 0.991
+  },
+  "etes_score": 0.0,
+  "etes_grade": "F",
+  "etes_components": {
+    "mutation_score": 0.0,
+    "evolution_gain": 1.0,
+    "assertion_iq": 0.5,
+    "behavior_coverage": 0.0,
+    "speed_factor": 0.2950131160016156,
+    "quality_factor": 1.0,
+    "insights": [
+      "Mutation score (0.00) below target (0.8)",
+      "Behavior coverage (0.00) below target (0.9)",
+      "Consider adding more intelligent assertions (invariants, properties)",
+      "Test execution speed needs optimization"
+    ],
+    "calculation_time": 0.00012993812561035156
+  },
+  "etes_comparison": {
+    "legacy_tes": 0,
+    "etes_v2": 0.0,
+    "improvement": 0.0,
+    "legacy_grade": "F",
+    "etes_grade": "F",
+    "components": {
+      "mutation_score": 0.0,
+      "evolution_gain": 1.0,
+      "assertion_iq": 0.5,
+      "behavior_coverage": 0.0,
+      "speed_factor": 0.2950131160016156,
+      "quality_factor": 1.0
+    },
+    "insights": [
+      "Mutation score (0.00) below target (0.8)",
+      "Behavior coverage (0.00) below target (0.9)",
+      "Consider adding more intelligent assertions (invariants, properties)",
+      "Test execution speed needs optimization"
+    ],
+    "recommendations": [
+      "Scores are comparable - E-TES v2.0 provides additional insights",
+      "Low assertion IQ - focus on intelligent assertion patterns"
+    ]
+  },
+  "has_critical_issues": true,
+  "analysis_metadata": {
+    "files_analyzed": 55,
+    "errors_count": 0,
+    "warnings_count": 0,
+    "etes_v2_enabled": true
+  }
+}

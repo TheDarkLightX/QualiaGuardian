@@ -1,0 +1,5 @@
+numpy
+radon
+pytest-bdd
+pytest
+scipy

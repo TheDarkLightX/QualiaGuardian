@@ -1,0 +1,713 @@
+Analyzing project at: .
+Max function lines threshold: 20
+Max class methods threshold: 10
+Test path: .
+Error calculating cyclomatic complexity: expected an indented block after function definition on line 1 (<unknown>, line 2)
+Error finding long elements: expected an indented block after function definition on line 1 (<unknown>, line 2)
+Error finding large classes: expected an indented block after function definition on line 1 (<unknown>, line 2)
+SyntaxError analyzing imports in ./tests/test_test_execution_pytest_runner.py: expected an indented block after function definition on line 1 (<unknown>, line 2)
+SyntaxError analyzing imports in ./tests/test_test_execution_pytest_runner.py: expected an indented block after function definition on line 1 (<unknown>, line 2)
+Error calculating cyclomatic complexity: expected an indented block after function definition on line 1 (<unknown>, line 2)
+Error finding long elements: expected an indented block after function definition on line 1 (<unknown>, line 2)
+Error finding large classes: expected an indented block after function definition on line 1 (<unknown>, line 2)
+SyntaxError analyzing imports in ./tests/test_evolution_adaptive_emt.py: expected an indented block after function definition on line 1 (<unknown>, line 2)
+SyntaxError analyzing imports in ./tests/test_evolution_adaptive_emt.py: expected an indented block after function definition on line 1 (<unknown>, line 2)
+Running tests with pytest on: .
+Running pytest command: /home/trevormoc/Downloads/Qualia/guardian_ai_tool/.venv/bin/pytest .
+Calculating E-TES v2.0 score...
+Performing dependency vulnerability check...
+Building import graph for circular dependency check...
+SyntaxError analyzing imports in ./tests/test_test_execution_pytest_runner.py: expected an indented block after function definition on line 1 (<unknown>, line 2)
+SyntaxError analyzing imports in ./tests/test_evolution_adaptive_emt.py: expected an indented block after function definition on line 1 (<unknown>, line 2)
+Finding circular dependencies...
+{
+  "project_path": ".",
+  "status": "analysis_partial",
+  "message": "Initial analysis complete.",
+  "tes_score": 0,
+  "tes_grade": "F",
+  "etes_v2_enabled": true,
+  "etes_score": 0.0,
+  "etes_grade": "F",
+  "metrics": {
+    "total_lines_of_code_python": 9625,
+    "python_files_analyzed": 50,
+    "average_cyclomatic_complexity": 4.326407270917174,
+    "long_functions_count": 152,
+    "large_classes_count": 19,
+    "total_imports_found": 251,
+    "unique_imported_modules_count": 60,
+    "unused_imports_count": 90,
+    "circular_dependencies_count": 1
+  },
+  "test_execution_summary": {
+    "pytest_ran_successfully": false,
+    "pytest_exit_code": 2,
+    "pytest_duration_seconds": 0.922
+  },
+  "security_analysis": {
+    "dependency_vulnerabilities_count": 0,
+    "dependency_check_message": "Dependency check completed.",
+    "eval_usage_count": 18,
+    "hardcoded_secrets_count": 11
+  },
+  "details": {
+    "long_functions_list": [
+      {
+        "name": "create_sample_test_suite_data",
+        "type": "function",
+        "lines": 29,
+        "lineno": 26,
+        "endline": 54,
+        "file": "test_etes_v2.py"
+      },
+      {
+        "name": "test_etes_calculator",
+        "type": "function",
+        "lines": 36,
+        "lineno": 77,
+        "endline": 112,
+        "file": "test_etes_v2.py"
+      },
+      {
+        "name": "test_smart_mutator",
+        "type": "function",
+        "lines": 43,
+        "lineno": 115,
+        "endline": 157,
+        "file": "test_etes_v2.py"
+      },
+      {
+        "name": "test_quality_factor",
+        "type": "function",
+        "lines": 48,
+        "lineno": 160,
+        "endline": 207,
+        "file": "test_etes_v2.py"
+      },
+      {
+        "name": "test_evolution_history",
+        "type": "function",
+        "lines": 55,
+        "lineno": 210,
+        "endline": 264,
+        "file": "test_etes_v2.py"
+      },
+      {
+        "name": "test_tes_vs_etes_comparison",
+        "type": "function",
+        "lines": 32,
+        "lineno": 267,
+        "endline": 298,
+        "file": "test_etes_v2.py"
+      },
+      {
+        "name": "run_comprehensive_test",
+        "type": "function",
+        "lines": 61,
+        "lineno": 301,
+        "endline": 361,
+        "file": "test_etes_v2.py"
+      },
+      {
+        "name": "demo_basic_etes",
+        "type": "function",
+        "lines": 71,
+        "lineno": 21,
+        "endline": 91,
+        "file": "demo_etes_v2.py"
+      },
+      {
+        "name": "demo_comparison",
+        "type": "function",
+        "lines": 55,
+        "lineno": 94,
+        "endline": 148,
+        "file": "demo_etes_v2.py"
+      },
+      {
+        "name": "demo_evolution_scenarios",
+        "type": "function",
+        "lines": 85,
+        "lineno": 151,
+        "endline": 235,
+        "file": "demo_etes_v2.py"
+      }
+    ],
+    "vulnerability_details_list": [],
+    "eval_usage_details_list": [
+      {
+        "line_number": 6,
+        "line_content": "return eval(data) # This should be detected",
+        "file": "dummy_project/eval_test.py"
+      },
+      {
+        "line_number": 10,
+        "line_content": "eval (x) # This should also be detected",
+        "file": "dummy_project/eval_test.py"
+      },
+      {
+        "line_number": 14,
+        "line_content": "string_with_eval = \"this is a string with eval() in it\"",
+        "file": "dummy_project/eval_test.py"
+      },
+      {
+        "line_number": 490,
+        "line_content": "assert 'Dangerous eval() Usage' in issues_section",
+        "file": "tests/test_cli_comprehensive.py"
+      },
+      {
+        "line_number": 492,
+        "line_content": "\"\"\"Test detection of eval() usage\"\"\"",
+        "file": "tests/test_static_analysis_comprehensive.py"
+      },
+      {
+        "line_number": 495,
+        "line_content": "result = eval(user_input)  # Dangerous!",
+        "file": "tests/test_static_analysis_comprehensive.py"
+      },
+      {
+        "line_number": 499,
+        "line_content": "x = eval(\"2 + 2\")  # Also dangerous",
+        "file": "tests/test_static_analysis_comprehensive.py"
+      },
+      {
+        "line_number": 514,
+        "line_content": "message = \"Don't use eval() in production\"",
+        "file": "tests/test_static_analysis_comprehensive.py"
+      },
+      {
+        "line_number": 165,
+        "line_content": "Checks for the use of 'eval(' in the given code content.",
+        "file": "guardian/analysis/security.py"
+      },
+      {
+        "line_number": 170,
+        "line_content": "where 'eval(' was found.",
+        "file": "guardian/analysis/security.py"
+      }
+    ],
+    "large_classes_details_list": [
+      {
+        "name": "CompleteSystemDemo",
+        "method_count": 13,
+        "lineno": 30,
+        "endline": 410,
+        "file": "demo_complete_system.py"
+      },
+      {
+        "name": "BigClassRegularMethods",
+        "method_count": 11,
+        "lineno": 9,
+        "endline": 20,
+        "file": "dummy_project/class_test.py"
+      },
+      {
+        "name": "TestETESCalculatorCore",
+        "method_count": 18,
+        "lineno": 23,
+        "endline": 296,
+        "file": "tests/test_etes_v2_comprehensive.py"
+      },
+      {
+        "name": "TestProjectAnalyzerCore",
+        "method_count": 15,
+        "lineno": 26,
+        "endline": 259,
+        "file": "tests/test_cli_comprehensive.py"
+      },
+      {
+        "name": "TestOutputFormatterCore",
+        "method_count": 12,
+        "lineno": 298,
+        "endline": 493,
+        "file": "tests/test_cli_comprehensive.py"
+      },
+      {
+        "name": "TestGuardianOptimizerCore",
+        "method_count": 19,
+        "lineno": 27,
+        "endline": 334,
+        "file": "tests/test_guardian_self_improvement.py"
+      },
+      {
+        "name": "TestStaticAnalysisCore",
+        "method_count": 21,
+        "lineno": 35,
+        "endline": 343,
+        "file": "tests/test_static_analysis_comprehensive.py"
+      },
+      {
+        "name": "QualityFactorCalculator",
+        "method_count": 16,
+        "lineno": 43,
+        "endline": 506,
+        "file": "guardian/metrics/quality_factor.py"
+      },
+      {
+        "name": "EvolutionHistoryTracker",
+        "method_count": 18,
+        "lineno": 63,
+        "endline": 511,
+        "file": "guardian/metrics/evolution_history.py"
+      },
+      {
+        "name": "BeautifulConsole",
+        "method_count": 14,
+        "lineno": 165,
+        "endline": 418,
+        "file": "guardian/self_improvement/console_interface.py"
+      }
+    ],
+    "hardcoded_secrets_details_list": [
+      {
+        "line_number": 3,
+        "line_content": "API_KEY = \"sk_live_12345abcDEfgHiJkLMnOpQrStUvWxYz\"",
+        "pattern_name": "API_KEY",
+        "matched_value_preview": "sk_live_12...",
+        "file": "dummy_project/secrets_test.py"
+      },
+      {
+        "line_number": 4,
+        "line_content": "DATABASE_PASSWORD = 'mySup3rS3cur3P@ssw0rd!'",
+        "pattern_name": "PASSWORD",
+        "matched_value_preview": "mySup3rS3c...",
+        "file": "dummy_project/secrets_test.py"
+      },
+      {
+        "line_number": 7,
+        "line_content": "another_api_token = \"ghp_abcdefghijklmnopqrstuvwxyz123456\" # Generic token",
+        "pattern_name": "TOKEN",
+        "matched_value_preview": "ghp_abcdef...",
+        "file": "dummy_project/secrets_test.py"
+      },
+      {
+        "line_number": 14,
+        "line_content": "master_key = 'master_of_keys_123'",
+        "pattern_name": "GENERIC_KEY",
+        "matched_value_preview": "master_of_...",
+        "file": "dummy_project/secrets_test.py"
+      },
+      {
+        "line_number": 526,
+        "line_content": "API_KEY = \"sk-1234567890abcdef\"",
+        "pattern_name": "API_KEY",
+        "matched_value_preview": "sk-1234567...",
+        "file": "tests/test_static_analysis_comprehensive.py"
+      },
+      {
+        "line_number": 527,
+        "line_content": "PASSWORD = \"super_secret_password\"",
+        "pattern_name": "PASSWORD",
+        "matched_value_preview": "super_secr...",
+        "file": "tests/test_static_analysis_comprehensive.py"
+      },
+      {
+        "line_number": 528,
+        "line_content": "TOKEN = \"ghp_1234567890abcdef\"",
+        "pattern_name": "TOKEN",
+        "matched_value_preview": "ghp_123456...",
+        "file": "tests/test_static_analysis_comprehensive.py"
+      },
+      {
+        "line_number": 531,
+        "line_content": "key = \"another-secret-key\"",
+        "pattern_name": "GENERIC_KEY",
+        "matched_value_preview": "another-se...",
+        "file": "tests/test_static_analysis_comprehensive.py"
+      },
+      {
+        "line_number": 285,
+        "line_content": "API_KEY = \"12345abcdef12345abcdef\" # a secret",
+        "pattern_name": "API_KEY",
+        "matched_value_preview": "12345abcde...",
+        "file": "guardian/analysis/security.py"
+      },
+      {
+        "line_number": 286,
+        "line_content": "MY_PASSWORD = 'supersecretpassword123!'",
+        "pattern_name": "PASSWORD",
+        "matched_value_preview": "supersecre...",
+        "file": "guardian/analysis/security.py"
+      }
+    ],
+    "all_project_imports_list": [
+      {
+        "module": "guardian.self_improvement.guardian_optimizer",
+        "names": [
+          {
+            "name": "GuardianOptimizer",
+            "asname": null
+          },
+          {
+            "name": "SelectionMode",
+            "asname": null
+          }
+        ],
+        "lineno": 1,
+        "type": "ImportFrom",
+        "level": 0,
+        "file": "run_guardian_self_improvement.py"
+      },
+      {
+        "module": "sys",
+        "asname": null,
+        "names": [],
+        "lineno": 9,
+        "type": "Import",
+        "file": "test_etes_v2.py"
+      },
+      {
+        "module": "os",
+        "asname": null,
+        "names": [],
+        "lineno": 10,
+        "type": "Import",
+        "file": "test_etes_v2.py"
+      },
+      {
+        "module": "time",
+        "asname": null,
+        "names": [],
+        "lineno": 11,
+        "type": "Import",
+        "file": "test_etes_v2.py"
+      },
+      {
+        "module": "json",
+        "asname": null,
+        "names": [],
+        "lineno": 12,
+        "type": "Import",
+        "file": "test_etes_v2.py"
+      },
+      {
+        "module": "typing",
+        "names": [
+          {
+            "name": "Dict",
+            "asname": null
+          },
+          {
+            "name": "Any",
+            "asname": null
+          }
+        ],
+        "lineno": 13,
+        "type": "ImportFrom",
+        "level": 0,
+        "file": "test_etes_v2.py"
+      },
+      {
+        "module": "guardian.core.etes",
+        "names": [
+          {
+            "name": "ETESCalculator",
+            "asname": null
+          },
+          {
+            "name": "ETESConfig",
+            "asname": null
+          },
+          {
+            "name": "ETESComponents",
+            "asname": null
+          }
+        ],
+        "lineno": 18,
+        "type": "ImportFrom",
+        "level": 0,
+        "file": "test_etes_v2.py"
+      },
+      {
+        "module": "guardian.core.tes",
+        "names": [
+          {
+            "name": "calculate_etes_v2",
+            "asname": null
+          },
+          {
+            "name": "compare_tes_vs_etes",
+            "asname": null
+          },
+          {
+            "name": "calculate_tes",
+            "asname": null
+          }
+        ],
+        "lineno": 19,
+        "type": "ImportFrom",
+        "level": 0,
+        "file": "test_etes_v2.py"
+      },
+      {
+        "module": "guardian.evolution.adaptive_emt",
+        "names": [
+          {
+            "name": "AdaptiveEMT",
+            "asname": null
+          }
+        ],
+        "lineno": 20,
+        "type": "ImportFrom",
+        "level": 0,
+        "file": "test_etes_v2.py"
+      },
+      {
+        "module": "guardian.evolution.smart_mutator",
+        "names": [
+          {
+            "name": "SmartMutator",
+            "asname": null
+          }
+        ],
+        "lineno": 21,
+        "type": "ImportFrom",
+        "level": 0,
+        "file": "test_etes_v2.py"
+      },
+      {
+        "module": "guardian.metrics.quality_factor",
+        "names": [
+          {
+            "name": "QualityFactorCalculator",
+            "asname": null
+          }
+        ],
+        "lineno": 22,
+        "type": "ImportFrom",
+        "level": 0,
+        "file": "test_etes_v2.py"
+      },
+      {
+        "module": "guardian.metrics.evolution_history",
+        "names": [
+          {
+            "name": "EvolutionHistoryTracker",
+            "asname": null
+          }
+        ],
+        "lineno": 23,
+        "type": "ImportFrom",
+        "level": 0,
+        "file": "test_etes_v2.py"
+      },
+      {
+        "module": "traceback",
+        "asname": null,
+        "names": [],
+        "lineno": 359,
+        "type": "Import",
+        "file": "test_etes_v2.py"
+      },
+      {
+        "module": "sys",
+        "asname": null,
+        "names": [],
+        "lineno": 9,
+        "type": "Import",
+        "file": "demo_etes_v2.py"
+      },
+      {
+        "module": "os",
+        "asname": null,
+        "names": [],
+        "lineno": 10,
+        "type": "Import",
+        "file": "demo_etes_v2.py"
+      },
+      {
+        "module": "time",
+        "asname": null,
+        "names": [],
+        "lineno": 11,
+        "type": "Import",
+        "file": "demo_etes_v2.py"
+      },
+      {
+        "module": "json",
+        "asname": null,
+        "names": [],
+        "lineno": 12,
+        "type": "Import",
+        "file": "demo_etes_v2.py"
+      },
+      {
+        "module": "guardian.core.etes",
+        "names": [
+          {
+            "name": "ETESCalculator",
+            "asname": null
+          },
+          {
+            "name": "ETESConfig",
+            "asname": null
+          }
+        ],
+        "lineno": 17,
+        "type": "ImportFrom",
+        "level": 0,
+        "file": "demo_etes_v2.py"
+      },
+      {
+        "module": "guardian.core.tes",
+        "names": [
+          {
+            "name": "calculate_etes_v2",
+            "asname": null
+          },
+          {
+            "name": "compare_tes_vs_etes",
+            "asname": null
+          },
+          {
+            "name": "calculate_tes",
+            "asname": null
+          }
+        ],
+        "lineno": 18,
+        "type": "ImportFrom",
+        "level": 0,
+        "file": "demo_etes_v2.py"
+      },
+      {
+        "module": "traceback",
+        "asname": null,
+        "names": [],
+        "lineno": 344,
+        "type": "Import",
+        "file": "demo_etes_v2.py"
+      }
+    ],
+    "unused_imports_details_list": [
+      {
+        "module": "guardian.core.etes",
+        "name": "ETESComponents",
+        "alias": null,
+        "lineno": 18,
+        "file": "test_etes_v2.py"
+      },
+      {
+        "module": "guardian.evolution.adaptive_emt",
+        "name": "AdaptiveEMT",
+        "alias": null,
+        "lineno": 20,
+        "file": "test_etes_v2.py"
+      },
+      {
+        "module": "json",
+        "name": "json",
+        "alias": null,
+        "lineno": 12,
+        "file": "demo_etes_v2.py"
+      },
+      {
+        "module": "threading",
+        "name": "threading",
+        "alias": null,
+        "lineno": 17,
+        "file": "demo_complete_system.py"
+      },
+      {
+        "module": "typing",
+        "name": "Dict",
+        "alias": null,
+        "lineno": 19,
+        "file": "demo_complete_system.py"
+      },
+      {
+        "module": "typing",
+        "name": "Any",
+        "alias": null,
+        "lineno": 19,
+        "file": "demo_complete_system.py"
+      },
+      {
+        "module": "guardian.self_improvement.gamified_monitor",
+        "name": "GamifiedMonitor",
+        "alias": null,
+        "lineno": 25,
+        "file": "demo_complete_system.py"
+      },
+      {
+        "module": "guardian.core.etes",
+        "name": "ETESCalculator",
+        "alias": null,
+        "lineno": 27,
+        "file": "demo_complete_system.py"
+      },
+      {
+        "module": "guardian.core.etes",
+        "name": "ETESConfig",
+        "alias": null,
+        "lineno": 27,
+        "file": "demo_complete_system.py"
+      },
+      {
+        "module": "datetime",
+        "name": "datetime",
+        "alias": null,
+        "lineno": 4,
+        "file": "dummy_project/app.py"
+      }
+    ],
+    "circular_dependencies_list": [
+      [
+        "dummy_project.circ_a",
+        "dummy_project.circ_b"
+      ]
+    ],
+    "pytest_stdout": "ed\n    ???\n<frozen importlib._bootstrap>:935: in _load_unlocked\n    ???\n.venv/lib/python3.12/site-packages/_pytest/assertion/rewrite.py:176: in exec_module\n    source_stat, co = _rewrite_test(fn, self.config)\n.venv/lib/python3.12/site-packages/_pytest/assertion/rewrite.py:356: in _rewrite_test\n    tree = ast.parse(source, filename=strfn)\n/usr/lib/python3.12/ast.py:52: in parse\n    return compile(source, filename, mode, flags,\nE     File \"/home/trevormoc/Downloads/Qualia/guardian_ai_tool/tests/test_test_execution_pytest_runner.py\", line 2\nE       assert x > 0\nE       ^^^^^^\nE   IndentationError: expected an indented block after function definition on line 1\n=========================== short test summary info ============================\nERROR tests/test_evolution_adaptive_emt.py\nERROR tests/test_test_execution_pytest_runner.py\n!!!!!!!!!!!!!!!!!!! Interrupted: 2 errors during collection !!!!!!!!!!!!!!!!!!!!\n============================== 2 errors in 0.53s ===============================\n",
+    "pytest_stderr": ""
+  },
+  "tes_components": {
+    "mutation_score": 0.0,
+    "assertion_density_raw": 0.0,
+    "total_user_stories": 0,
+    "covered_user_stories": 0,
+    "behavior_coverage_calculated": 0.0,
+    "avg_test_execution_time_ms": 20000,
+    "speed_factor_calculated": 0.004975124378109453
+  },
+  "etes_components": {
+    "mutation_score": 0.0,
+    "evolution_gain": 1.0,
+    "assertion_iq": 0.5,
+    "behavior_coverage": 0.0,
+    "speed_factor": 0.15864693436001365,
+    "quality_factor": 1.0,
+    "insights": [
+      "Mutation score (0.00) below target (0.8)",
+      "Behavior coverage (0.00) below target (0.9)",
+      "Consider adding more intelligent assertions (invariants, properties)",
+      "Test execution speed needs optimization"
+    ],
+    "calculation_time": 0.00010967254638671875
+  },
+  "etes_comparison": {
+    "legacy_tes": 0,
+    "etes_v2": 0.0,
+    "improvement": 0.0,
+    "legacy_grade": "F",
+    "etes_grade": "F",
+    "components": {
+      "mutation_score": 0.0,
+      "evolution_gain": 1.0,
+      "assertion_iq": 0.5,
+      "behavior_coverage": 0.0,
+      "speed_factor": 0.15864693436001365,
+      "quality_factor": 1.0
+    },
+    "insights": [
+      "Mutation score (0.00) below target (0.8)",
+      "Behavior coverage (0.00) below target (0.9)",
+      "Consider adding more intelligent assertions (invariants, properties)",
+      "Test execution speed needs optimization"
+    ],
+    "recommendations": [
+      "Scores are comparable - E-TES v2.0 provides additional insights",
+      "Low assertion IQ - focus on intelligent assertion patterns"
+    ]
+  },
+  "has_critical_issues": true
+}

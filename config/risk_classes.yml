@@ -1,0 +1,18 @@
+# guardian_ai_tool/config/risk_classes.yml
+# Defines bE-TES v3.0 thresholds for different risk classifications.
+
+standard_saas:
+  min_score: 0.75
+  # Optional: description: "Standard Software-as-a-Service applications"
+
+financial:
+  min_score: 0.85
+  # Optional: additional_requirements:
+  #   behavior_coverage_min: 0.90 
+
+medical_class_iii:
+  min_score: 0.92
+  # Optional: notes: "Requires manual sign-off irrespective of score."
+  # Optional: specific_weights: # Example of how one might override default weights per risk class
+  #   w_m: 2.0
+  #   w_b: 2.0

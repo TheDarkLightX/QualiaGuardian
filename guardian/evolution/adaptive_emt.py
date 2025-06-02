@@ -1,0 +1,356 @@
+"""
+Adaptive Evolutionary Mutation Testing (EMT) Engine
+
+Self-improving mutation testing with evolutionary algorithms and 
+multi-objective optimization for test suite enhancement.
+"""
+
+import numpy as np
+import logging
+from typing import List, Dict, Any, Tuple, Optional
+import random
+import time
+import os
+import ast
+from pathlib import Path # Added
+from concurrent.futures import ThreadPoolExecutor, as_completed
+
+from .types import EvolutionHistory, TestIndividual
+from .smart_mutator import SmartMutator
+from .operators import CrossoverOperator, MutationOperator
+from .fitness import FitnessEvaluator, MultiObjectiveFitness, FitnessVector
+from ..budget import Budget # Added
+from ..utils.pid_controller import PIDController # Added
+
+logger = logging.getLogger(__name__)
+
+
+class AdaptiveEMT:
+    """
+    Adaptive Evolutionary Mutation Testing Engine
+    
+    Uses evolutionary algorithms to evolve test suites that maximize
+    mutation killing effectiveness while maintaining quality.
+    Now incorporates budget awareness and PID control for dynamic parameter tuning.
+    """
+    
+    def __init__(self,
+                 code_root: Path, # Changed from codebase_path (str)
+                 existing_tests: List[Path], # New parameter
+                 fitness_evaluator: FitnessEvaluator, # New: pass instance
+                 budget: Budget, # New parameter
+                 pid: PIDController, # New parameter
+                 focus_modules: Optional[List[str]] = None, # New parameter
+                 # Default values for rates, can be overridden or adapted
+                 mutation_rate: float = 0.1, 
+                 crossover_rate: float = 0.7,
+                 early_stopping_patience: int = 5 # Kept for internal stagnation check
+                ):
+        self.code_root = code_root
+        self.existing_tests_paths = existing_tests # Store paths to initial tests
+        self.focus_modules = focus_modules
+        self.fitness_evaluator = fitness_evaluator # Use passed instance
+        self.budget = budget
+        self.pid = pid
+        
+        self.early_stopping_patience = early_stopping_patience
+        
+        # Initialize components that are internally managed or configured
+        # SmartMutator now uses code_root
+        self.smart_mutator = SmartMutator(str(code_root)) 
+        self.crossover = CrossoverOperator()
+        self.mutation_op = MutationOperator()
+        self.mo_fitness = MultiObjectiveFitness()
+        
+        # Evolution state
+        self.population: List[TestIndividual] = []
+        self.history = EvolutionHistory() # Will be re-initialized in evolve
+        self.current_generation_num = 0 # Renamed from self.current_generation
+        
+        # Adaptive parameters & operators related params
+        self.base_mutation_rate = mutation_rate
+        self.current_mutation_rate = self.base_mutation_rate
+        self.crossover_rate = crossover_rate
+        self.stagnation_counter = 0
+        self.best_hypervolume_ever = -float('inf')
+        self.current_mutants: List[Dict[str, Any]] = []
+        self.current_delta_m: float = 0.0 # Placeholder for achieved delta_m
+
+        # Metrics for PID control and budget tracking
+        self.cpu_used_total_min: float = 0.0
+        self.wall_time_start: Optional[float] = None
+
+
+    def _initialize_population(self) -> None: # Removed test_suite_path, uses self.existing_tests_paths
+        """
+        Initializes the population by parsing existing test files.
+        If `focus_modules` are provided, it might prioritize or filter tests.
+        If not enough tests are found, random ones might be generated (placeholder).
+        The population size for initialization will be guided by an initial PID output
+        or a lookup table value before the main evolve loop starts.
+        """
+        logger.info(f"Initializing population from {len(self.existing_tests_paths)} existing test paths.")
+        parsed_individuals = []
+
+        # Determine initial population size (e.g., from PID or lookup table)
+        # For M0, let's assume a small fixed initial pop if PID isn't used for *first* pop_size
+        # Or, the caller of evolve could provide an initial pop_size.
+        # For now, _initialize_population will just parse what's given.
+        # The evolve loop will manage the target size per generation.
+
+        for filepath in self.existing_tests_paths:
+            if not filepath.is_file() or not filepath.name.startswith("test_") or not filepath.name.endswith(".py"):
+                logger.warning(f"Skipping non-test file or invalid path: {filepath}")
+                continue
+            try:
+                with open(filepath, "r", encoding="utf-8") as f:
+                    content = f.read()
+                tree = ast.parse(content, filename=str(filepath))
+                for node in ast.walk(tree):
+                    if isinstance(node, ast.FunctionDef) and node.name.startswith("test_"):
+                        test_code = ast.get_source_segment(content, node)
+                        if test_code is None:
+                            logger.warning(f"Could not extract source for {node.name} in {filepath}")
+                            continue
+                        
+                        assertions = [] # Simplified parsing for now
+                        for sub_node in ast.walk(node):
+                            if isinstance(sub_node, ast.Assert):
+                                assertion_code = ast.get_source_segment(content, sub_node)
+                                assertions.append({
+                                    "type": "assert",
+                                    "code": assertion_code if assertion_code else "Unknown assertion",
+                                    "target_criticality": 1.0 
+                                })
+                        individual = TestIndividual(
+                            test_code=test_code,
+                            assertions=assertions,
+                            generation=0 
+                        )
+                        parsed_individuals.append(individual)
+            except Exception as e:
+                logger.error(f"Error parsing test file {filepath}: {e}")
+        
+        self.population = parsed_individuals
+        logger.info(f"Parsed {len(self.population)} individuals from existing tests.")
+
+        # Placeholder: If focus_modules are defined, could filter/prioritize individuals
+        # Placeholder: If population is too small after parsing, generate/mutate to fill
+        # For M0, we'll work with what's parsed. The evolve loop will handle size.
+
+
+    def _simulate_generation_cost(self, pop_size: int) -> Tuple[float, float]:
+        """
+        Simulates CPU and wall time cost for running one generation.
+        For M0 testing purposes.
+
+        Args:
+            pop_size (int): Current population size.
+
+        Returns:
+            Tuple[float, float]: Simulated CPU cost (minutes), Wall cost (minutes)
+        """
+        # Simple simulation: cost increases with population size
+        # Assume 1 pop_size unit = 0.05 CPU core-minutes and 0.02 wall-minutes
+        cpu_cost = pop_size * 0.05 
+        wall_cost = pop_size * 0.02
+        # Add some base cost
+        cpu_cost += 0.1 
+        wall_cost += 0.05
+        logger.debug(f"Simulated cost for pop_size {pop_size}: CPU {cpu_cost:.2f}m, Wall {wall_cost:.2f}m")
+        return cpu_cost, wall_cost
+
+    def _run_one_generation(self, pop_size: int, current_generation_num: int) -> None:
+        """
+        Runs a single generation of the evolutionary algorithm.
+        For M0, this is a stub that simulates work and updates population (placeholder).
+        Actual evolutionary operators (selection, crossover, mutation, evaluation)
+        will be implemented in later milestones.
+
+        Args:
+            pop_size (int): The target population size for this generation,
+                            determined by the PID controller.
+            current_generation_num (int): The current generation number.
+        """
+        logger.info(f"Running generation {current_generation_num + 1} with target population size {pop_size}")
+        
+        # Placeholder: Adjust current self.population to pop_size (e.g., truncate or add random)
+        if len(self.population) > pop_size:
+            self.population = self.population[:pop_size]
+        elif len(self.population) < pop_size:
+            # Add random individuals (placeholder)
+            for _ in range(pop_size - len(self.population)):
+                self.population.append(self._generate_random_test())
+        
+        # Placeholder: Simulate evolutionary operations
+        # In a real implementation, this would involve:
+        # 1. _evaluate_population() (if not already done for initial pop)
+        # 2. _evolve_generation() -> creates new offspring, combines, selects
+        # 3. _update_adaptive_parameters()
+        
+        # For M0, we just log and prepare for cost simulation
+        logger.debug(f"Generation {current_generation_num + 1} stub: population size now {len(self.population)}")
+        
+        # Simulate some metric improvement (for target_delta_m check)
+        # This would come from actual fitness evaluation in later milestones
+        self.current_delta_m += random.uniform(0.001, 0.005) * (pop_size / 10.0) # Improvement scales with pop_size
+        self.current_delta_m = min(self.current_delta_m, 0.1) # Cap delta_m for simulation
+        logger.debug(f"Simulated current_delta_m: {self.current_delta_m:.4f}")
+
+
+    def evolve(self) -> List[TestIndividual]: # Return type changed
+        """
+        Main evolution loop, controlled by PID and budget.
+        Runs generations until budget is exhausted or target metric delta is met.
+
+        Returns:
+            List[TestIndividual]: The list of best individuals found.
+                                  For M0, this will be an empty list.
+        """
+        logger.info(f"Starting AdaptiveEMT.evolve() with budget: CPU {self.budget.cpu_core_min}m, "
+                    f"Wall {self.budget.wall_min or 'N/A'}m, Target M' delta {self.budget.target_delta_m or 'N/A'}")
+
+        self._initialize_population() # Uses self.existing_tests_paths
+        
+        # Placeholder: Generate initial mutants if needed by fitness evaluation later
+        # For M0, fitness evaluation is not deeply integrated yet.
+        # self.current_mutants = self.smart_mutator.generate_mutants_for_project(str(self.code_root))
+
+        self.cpu_used_total_min = 0.0
+        self.wall_time_start = time.monotonic()
+        self.current_generation_num = 0
+        self.pid.reset_integral() # Reset PID for this run
+
+        # Determine max generations based on a heuristic or keep it open ended by budget
+        # For M0, the loop is primarily budget-driven.
+        # A very high max_generations can be set if we want budget to be the sole decider.
+        max_generations_heuristic = 100 # A practical upper limit for the loop
+
+        while self.current_generation_num < max_generations_heuristic:
+            # 1. Check Wall Time Budget (if specified)
+            if self.budget.wall_min is not None:
+                elapsed_wall_min = (time.monotonic() - self.wall_time_start) / 60.0
+                if elapsed_wall_min >= self.budget.wall_min:
+                    logger.info(f"Wall time budget ({self.budget.wall_min}m) exceeded. Stopping evolution.")
+                    break
+            
+            # 2. Check CPU Time Budget
+            if self.cpu_used_total_min >= self.budget.cpu_core_min:
+                logger.info(f"CPU budget ({self.budget.cpu_core_min} core-min) exceeded. Stopping evolution.")
+                break
+
+            # 3. Get next population size from PID controller
+            #    The Process Variable (pv) for PID could be cpu_used_total_min or current_delta_m
+            #    Let's use cpu_used_total_min for now, with setpoint being self.budget.cpu_core_min
+            #    The PID's output is population size.
+            #    This assumes PID is configured with sp = self.budget.cpu_core_min
+            #    A more sophisticated PID might have its setpoint as "remaining budget" or "target metric"
+            
+            # For M0, let's use a simpler PID interaction:
+            # PID's setpoint is the total CPU budget. PV is current CPU used.
+            # The PID will try to recommend a pop_size.
+            # We need to ensure the PID is configured appropriately by the caller.
+            # For this stub, we'll assume self.pid.sp is set to self.budget.cpu_core_min
+            
+            # The PID controller's `next` method expects the current process variable.
+            # If controlling based on CPU usage, pv = self.cpu_used_total_min
+            # If controlling based on achieving target_delta_m, pv = self.current_delta_m and sp = self.budget.target_delta_m
+            # For M0, let's assume the PID is for CPU budget.
+            current_pop_size = self.pid.next(pv=self.cpu_used_total_min)
+            
+            # Map PID output (population_size) to generations for this run_one_generation call
+            # As per user spec: generations approx pop_size / 2
+            # This means _run_one_generation is more like "run a chunk of work"
+            # For M0, _run_one_generation is just a stub.
+            # Let's simplify: _run_one_generation IS one generation.
+            
+            logger.info(f"Generation {self.current_generation_num + 1}: "
+                        f"PID recommended pop_size={current_pop_size}. "
+                        f"CPU used so far: {self.cpu_used_total_min:.2f}/{self.budget.cpu_core_min}m.")
+
+            self._run_one_generation(pop_size=current_pop_size, current_generation_num=self.current_generation_num)
+            
+            # 4. Measure/Simulate cost of the generation
+            gen_cpu_cost, _ = self._simulate_generation_cost(current_pop_size) # wall cost not used in loop break yet
+            self.cpu_used_total_min += gen_cpu_cost
+            
+            # 5. Check if target_delta_m is met (if specified)
+            if self.budget.target_delta_m is not None and self.current_delta_m >= self.budget.target_delta_m:
+                logger.info(f"Target M' delta ({self.budget.target_delta_m}) achieved. Stopping evolution.")
+                break
+            
+            self.current_generation_num += 1
+            
+            # Placeholder for early stopping based on stagnation (internal to AdaptiveEMT)
+            # if self._should_stop_early(self.population): 
+            #     logger.info("Internal early stopping triggered due to stagnation.")
+            #     break
+
+        logger.info(f"Evolution finished after {self.current_generation_num} generations. "
+                    f"Total CPU used: {self.cpu_used_total_min:.2f}m.")
+        
+        # For M0, return an empty list as per requirement
+        return []
+
+
+    # --- Helper methods from original implementation (may need review/integration later) ---
+    # _evaluate_population, _evaluate_individual_fitness_vector, _evolve_generation,
+    # _tournament_selection_nsga2, _should_stop_early (needs rework for new budget/PID),
+    # _update_adaptive_parameters, _calculate_population_diversity, _calculate_test_similarity,
+    # _parse_test_to_individual, _generate_random_test, _load_existing_tests,
+    # _test_kills_mutant, _measure_test_speed, _measure_determinism,
+    # get_evolution_summary, _find_convergence_generation
+    # These are kept for reference but are not actively used or fully integrated in M0.
+
+    def _generate_random_test(self) -> TestIndividual:
+        """Generate a random test individual (placeholder)."""
+        test_code = "def test_random_generated():\n    assert 1 == random.randint(1, 2)"
+        return TestIndividual(
+            test_code=test_code,
+            assertions=[{'type': 'equality', 'code': 'assert 1 == random.randint(1, 2)', 'target_criticality': 1.0}],
+            generation=self.current_generation_num # Use current generation
+        )
+
+    # Placeholder for methods that would be part of full NSGA-II cycle, not used in M0 stub
+    def _evolve_generation(self, current_population: List[TestIndividual]) -> List[TestIndividual]:
+        logger.debug("Stub _evolve_generation called.")
+        # This would involve selection, crossover, mutation
+        # For M0, just return a slightly modified version or the same population
+        # to ensure the loop can proceed if this were called.
+        # The current M0 `evolve` loop calls `_run_one_generation` which handles population.
+        return current_population 
+
+    def _evaluate_population(self) -> None:
+        logger.debug("Stub _evaluate_population called.")
+        # This would calculate fitness, rank, crowding distance for all individuals
+        # For M0, this is not fully implemented.
+        for ind in self.population:
+            if not hasattr(ind, 'fitness_values') or ind.fitness_values is None:
+                ind.fitness_values = FitnessVector() # Default
+            if not hasattr(ind, 'pareto_rank'):
+                ind.pareto_rank = 0
+            if not hasattr(ind, 'crowding_distance'):
+                ind.crowding_distance = 0.0
+        pass
+
+    def _update_adaptive_parameters(self, current_population: List[TestIndividual]):
+        logger.debug("Stub _update_adaptive_parameters called.")
+        # This would adjust mutation_rate, etc.
+        pass
+        
+    def _should_stop_early(self, current_population: List[TestIndividual]) -> bool:
+        # This internal early stopping (stagnation) is different from budget/target_delta
+        # For M0, we can disable it or make it very lenient.
+        # The main evolve loop handles budget/target_delta stopping.
+        # This could be used if budget is very large and we want to stop if no progress.
+        # For now, let's make it not stop early internally.
+        # self.stagnation_counter +=1
+        # return self.stagnation_counter > self.early_stopping_patience
+        return False # Disable internal early stopping for M0
+
+    def _calculate_population_diversity(self) -> float:
+        """Calculate population diversity metric (placeholder)."""
+        if len(self.population) < 2: return 1.0
+        # Simplified: count unique test code strings
+        unique_codes = {ind.test_code for ind in self.population}
+        return len(unique_codes) / len(self.population) if self.population else 0.0
