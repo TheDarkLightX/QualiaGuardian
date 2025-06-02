@@ -21,6 +21,10 @@ from .operators import CrossoverOperator, MutationOperator
 from .fitness import FitnessEvaluator, MultiObjectiveFitness, FitnessVector
 from ..budget import Budget # Added
 from ..utils.pid_controller import PIDController # Added
+from sklearn.gaussian_process import GaussianProcessRegressor
+from sklearn.gaussian_process.kernels import RBF, WhiteKernel, ConstantKernel
+from sklearn.linear_model import LinearRegression
+
 
 logger = logging.getLogger(__name__)
 
@@ -81,6 +85,16 @@ class AdaptiveEMT:
         self.wall_time_start: Optional[float] = None
         self.all_project_mutants: List[Dict[str, Any]] = [] # To store all generated mutants for the project
         self.hardest_mutants_cache: List[Dict[str, Any]] = [] # Cache for the current set of hardest mutants
+
+        # GP Model components for Multi-Fidelity Optimization
+        self.gp_model_delta: Optional[GaussianProcessRegressor] = None
+        self.gp_rho: float = 0.5  # Initial estimate for rho, mean of Beta(2,2)
+        
+        # Data for GP training:
+        # Store (individual_features, f1_score, f2_score) for individuals evaluated at both fidelities
+        self.multi_fidelity_training_data: List[Tuple[np.ndarray, float, float]] = []
+        # Kernel for the GP on delta
+        self.gp_kernel = ConstantKernel(1.0, (1e-3, 1e3)) * RBF(1.0, (1e-2, 1e2)) + WhiteKernel(0.1, (1e-10, 1e1))
 
 
     def get_hardest_mutants(self, count: int = 100) -> List[Dict[str, Any]]:
@@ -470,3 +484,118 @@ class AdaptiveEMT:
         # Simplified: count unique test code strings
         unique_codes = {ind.test_code for ind in self.population}
         return len(unique_codes) / len(self.population) if self.population else 0.0
+
+    def _extract_features_for_gp(self, individual: TestIndividual, f1_score: Optional[float] = None) -> np.ndarray:
+        """
+        Extracts features from a TestIndividual to be used as input (X) for the GP.
+        For the model f2(x) = rho*f1(x) + delta(x), x are features of the individual.
+        
+        Args:
+            individual: The TestIndividual object.
+            f1_score: The low-fidelity score, can be one of the features.
+
+        Returns:
+            A numpy array representing the features. Shape (1, n_features).
+        """
+        # Placeholder: using f1_score (if available) and number of assertions.
+        # This needs to be a fixed-size vector and carefully chosen.
+        # For initial implementation, let's use a very simple feature set.
+        # If f1_score is not yet computed for this individual (e.g. predicting for a new candidate),
+        # it might not be available as a feature for delta(x) if delta is a function of x, not f1(x).
+        # The model is delta(x), so features should come from x (the individual).
+        
+        num_assertions = len(individual.assertions) if individual.assertions else 0
+        test_code_length = len(individual.test_code) if individual.test_code else 0
+        
+        # Example features: [num_assertions, test_code_length]
+        # Ensure this is consistent with what the GP expects.
+        features = np.array([float(num_assertions), float(test_code_length)])
+        return features.reshape(1, -1)
+
+
+    def _update_gp_model(self) -> None:
+        """
+        Updates the hierarchical Gaussian Process model f2(x) = rho*f1(x) + delta(x).
+        This method should be called when new (features_x, f1_score, f2_score) tuples are available
+        in self.multi_fidelity_training_data.
+        """
+        # Require a minimum number of data points that have *both* f1 and f2 scores.
+        # self.multi_fidelity_training_data stores (individual_features_array, f1_score, f2_score)
+        if len(self.multi_fidelity_training_data) < 5: # Increased min points for more stable GP
+            logger.info(f"Not enough multi-fidelity data points ({len(self.multi_fidelity_training_data)}) to train GP model robustly. Need at least 5.")
+            self.gp_model_delta = None
+            return
+
+        X_features_list = [data_point[0].flatten() for data_point in self.multi_fidelity_training_data] # Ensure features are 1D for vstack
+        f1_scores = np.array([data_point[1] for data_point in self.multi_fidelity_training_data])
+        f2_scores = np.array([data_point[2] for data_point in self.multi_fidelity_training_data])
+
+        X_gp_input = np.array(X_features_list) # Shape: (n_samples, n_features_for_delta_gp)
+        
+        # 1. Estimate rho using linear regression: f2_scores = rho * f1_scores + intercept
+        # The intercept can be absorbed by the GP's mean function for delta.
+        # Or, f2_scores - intercept = rho * f1_scores
+        # Simpler: rho = (f1^T f1)^-1 f1^T f2, assuming f1 is a column vector.
+        # Reshape f1_scores to be a column vector for LinearRegression
+        f1_reshaped = f1_scores.reshape(-1, 1)
+        
+        try:
+            # Regression of f2 on f1 to find rho
+            # (f2_i - delta_i) = rho * f1_i.  If E[delta_i] = 0, then f2_i approx rho * f1_i
+            # We can regress f2 on f1. The coefficient will be our rho.
+            rho_estimator = LinearRegression(fit_intercept=False) # delta(x) will handle the mean/intercept
+            rho_estimator.fit(f1_reshaped, f2_scores)
+            estimated_rho = rho_estimator.coef_[0]
+            
+            # Clip rho to a reasonable range, e.g., [0.1, 3.0], to prevent extreme values from sparse data.
+            # The Beta(2,2) prior for rho has mean 0.5, variance 0.05. Most mass between 0 and 1.
+            self.gp_rho = np.clip(estimated_rho, 0.1, 2.0)
+            logger.info(f"Updated GP rho estimate: {self.gp_rho:.4f} (raw: {estimated_rho:.4f})")
+        except Exception as e:
+            logger.warning(f"Failed to estimate rho using Linear Regression: {e}. Using previous/default: {self.gp_rho:.4f}")
+            # If estimation fails, stick to the current self.gp_rho (e.g. prior mean)
+
+        # 2. Calculate residuals for delta(x): Y_delta = f2_scores - self.gp_rho * f1_scores
+        Y_delta = f2_scores - self.gp_rho * f1_scores
+
+        # 3. Train GP model for delta(x) using X_gp_input (features of x) and Y_delta
+        if self.gp_model_delta is None:
+            self.gp_model_delta = GaussianProcessRegressor(kernel=self.gp_kernel,
+                                                         alpha=1e-5, # Small noise term for stability
+                                                         n_restarts_optimizer=10,
+                                                         random_state=42)
+        
+        try:
+            self.gp_model_delta.fit(X_gp_input, Y_delta)
+            logger.info(f"GP model for delta(x) updated with {X_gp_input.shape[0]} points. Kernel after fit: {self.gp_model_delta.kernel_}")
+            logger.debug(f"GP Log-Marginal-Likelihood: {self.gp_model_delta.log_marginal_likelihood_value_:.3f}")
+        except Exception as e:
+            logger.error(f"Failed to fit GP model for delta(x): {e}")
+            self.gp_model_delta = None # Invalidate model on error
+
+    def predict_f2_with_gp(self, individual: TestIndividual, f1_score: float) -> Tuple[float, float]:
+        """
+        Predicts the high-fidelity score f2(x) and its variance using the GP model.
+        f2_pred(x) = rho * f1(x) + delta_pred(x)
+        Var(f2_pred(x)) approx Var(delta_pred(x)) (assuming rho and f1(x) are 'fixed' for this prediction step,
+                                                or if rho is a sample from its posterior, variance would propagate).
+                                                For simplicity, we use Var(delta_pred(x)).
+        """
+        if self.gp_model_delta is None or not hasattr(self.gp_model_delta, "kernel_"): # Check if model is fitted
+            logger.warning("GP model for delta not available or not fitted. Returning f1_score*rho as f2 prediction with high uncertainty.")
+            return self.gp_rho * f1_score, 1.0 # Default high variance (e.g. 1.0)
+        
+        individual_features_X = self._extract_features_for_gp(individual, f1_score) # Shape (1, n_features)
+        
+        try:
+            delta_pred_mean, delta_pred_std = self.gp_model_delta.predict(individual_features_X, return_std=True)
+            
+            f2_predicted_mean = self.gp_rho * f1_score + delta_pred_mean[0]
+            # Ensure variance is non-negative
+            f2_predicted_variance = max(0.0, delta_pred_std[0]**2)
+            
+            logger.debug(f"GP Prediction: f1={f1_score:.3f}, rho={self.gp_rho:.3f}, delta_mean={delta_pred_mean[0]:.3f} => f2_pred={f2_predicted_mean:.3f}, f2_std_dev={np.sqrt(f2_predicted_variance):.3f}")
+            return f2_predicted_mean, f2_predicted_variance
+        except Exception as e:
+            logger.error(f"Error during GP prediction for f2: {e}")
+            return self.gp_rho * f1_score, 1.0 # Fallback on error
