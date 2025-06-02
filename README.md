@@ -36,8 +36,17 @@ QualiaGuardian is under active development. Key milestones achieved include:
     *   **Original Test Effectiveness Score (TES):** A foundational metric for test suite effectiveness.
     *   **Behavioral Evidence-based Test Effectiveness Score (bE-TES):** A more nuanced score defined as:
         *   **Bounded:** Every component is normalised to the 0 – 1 range, so the final score is always between 0 and 1.
-        *   **Evolutionary:** It’s designed to be improved autonomously by evolutionary-mutation-testing loops.
+        *   **Evolutionary:** This means the score is designed to be improved autonomously through iterative cycles. QualiaGuardian employs "evolutionary-mutation-testing loops" where:
+            1.  The system runs mutation testing to identify weaknesses in the test suite (surviving mutants).
+            2.  It then uses this data to guide the generation or modification of tests (potentially via the Autonomous Optimizer Agent or other mechanisms like `SmartMutator`) to kill these surviving mutants.
+            3.  This iterative process "evolves" the test suite to become more effective over time, directly impacting and improving the bE-TES.
         *   **Test-Effectiveness Score:** It quantifies how well the test suite actually detects real or mutant faults, weighting in stability, behaviour coverage, and speed.
+        It incorporates mutation testing as follows:
+        *   Mutation Score (MS) = (killed mutants) / (non-equivalent mutants)
+        *   Normalized MS (M') = minmax(MS, 0.6, 0.95)
+        *   bE-TES Uplift (Δ bE-TES) ≈ ((M'+ΔM')B'TS')^(1/5) - (M'B'TS')^(1/5)
+            *   (Where B'TS' represents other bounded and normalized components of the score)
+        For a more detailed visual explanation of Evolutionary Mutation Testing (EMT) and its benefits, see the [EMT Analysis Report](docs/emt_analysis_report.html).
     *   **Overall Software Quality Index (OSQI):** A holistic measure combining various quality aspects.
 *   **Gamified Command-Line Interface:**
     *   Track progress with Experience Points (XP) and Levels.
