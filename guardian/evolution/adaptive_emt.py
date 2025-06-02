@@ -24,6 +24,7 @@ from ..utils.pid_controller import PIDController # Added
 from sklearn.gaussian_process import GaussianProcessRegressor
 from sklearn.gaussian_process.kernels import RBF, WhiteKernel, ConstantKernel
 from sklearn.linear_model import LinearRegression
+from scipy.stats import norm # Added for EI calculation
 
 
 logger = logging.getLogger(__name__)
@@ -599,3 +600,86 @@ class AdaptiveEMT:
         except Exception as e:
             logger.error(f"Error during GP prediction for f2: {e}")
             return self.gp_rho * f1_score, 1.0 # Fallback on error
+
+    def _calculate_mf_ei(self, individual: TestIndividual, f1_score: float, best_f2_observed: float) -> float:
+        """
+        Calculates a simplified Multi-Fidelity Expected Improvement for an individual.
+        Assumes cost of high-fidelity evaluation is uniform for now.
+        Args:
+            individual: The test individual.
+            f1_score: The observed low-fidelity score for this individual.
+            best_f2_observed: The best high-fidelity score observed so far in the population.
+        Returns:
+            The MF-EI value.
+        """
+        if self.gp_model_delta is None:
+            return 0.0 # Cannot calculate EI without a GP model
+
+        mean_f2_pred, var_f2_pred = self.predict_f2_with_gp(individual, f1_score)
+        std_f2_pred = np.sqrt(max(1e-9, var_f2_pred)) # Ensure std_dev is non-zero and positive
+
+        # Standard EI formula components
+        # For maximization, improvement = mean_f2_pred - best_f2_observed
+        # We can add a small exploration parameter xi, e.g., 0.01
+        xi = 0.01
+        improvement = mean_f2_pred - best_f2_observed - xi
+        
+        if std_f2_pred < 1e-9: # Avoid division by zero if std is effectively zero
+            # If no uncertainty, EI is positive only if mean_f2_pred is better than best_f2_observed + xi
+            return max(0, improvement)
+
+        Z = improvement / std_f2_pred
+        
+        # Phi and phi are CDF and PDF of standard normal distribution
+        from scipy.stats import norm # Import locally or at top of file
+        ei = improvement * norm.cdf(Z) + std_f2_pred * norm.pdf(Z)
+        
+        # For MF-EI, divide by cost. Assuming cost is 1 for now.
+        # cost_high_fidelity = 1.0
+        # mf_ei = ei / cost_high_fidelity
+        return max(0, ei) # EI should be non-negative
+
+    def _select_individuals_for_high_fidelity(self,
+                                             candidates: List[TestIndividual],
+                                             low_fidelity_scores: List[float],
+                                             num_to_select: int) -> List[Tuple[TestIndividual, float]]:
+        """
+        Selects a subset of candidate individuals for high-fidelity evaluation using MF-EI.
+        
+        Args:
+            candidates: A list of TestIndividuals that have been evaluated with low-fidelity.
+            low_fidelity_scores: A list of corresponding f1_scores for the candidates.
+            num_to_select: The number of individuals to select for high-fidelity evaluation.
+
+        Returns:
+            A list of (TestIndividual, f1_score) tuples for selected individuals.
+        """
+        if not candidates or self.gp_model_delta is None:
+            logger.warning("Cannot select for high-fidelity: no candidates or GP model not ready.")
+            # Fallback: select randomly or based on best f1 if no GP
+            if candidates and num_to_select > 0:
+                selected_indices = random.sample(range(len(candidates)), min(num_to_select, len(candidates)))
+                return [(candidates[i], low_fidelity_scores[i]) for i in selected_indices]
+            return []
+
+        # Find the best f2 score observed so far from self.multi_fidelity_training_data
+        if not self.multi_fidelity_training_data:
+            best_f2_observed = -float('inf') # No observations yet
+        else:
+            best_f2_observed = max(data_point[2] for data_point in self.multi_fidelity_training_data)
+
+        mf_ei_values = []
+        for i, individual in enumerate(candidates):
+            f1_score = low_fidelity_scores[i]
+            ei = self._calculate_mf_ei(individual, f1_score, best_f2_observed)
+            mf_ei_values.append((ei, i)) # Store EI and original index
+
+        # Sort by EI in descending order
+        mf_ei_values.sort(key=lambda x: x[0], reverse=True)
+        
+        selected_for_hf = []
+        for ei_val, index in mf_ei_values[:num_to_select]:
+            selected_for_hf.append((candidates[index], low_fidelity_scores[index]))
+            logger.debug(f"Selected individual (index {index}) for HF eval with MF-EI: {ei_val:.4f}")
+            
+        return selected_for_hf
