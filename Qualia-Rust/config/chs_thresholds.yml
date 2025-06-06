@@ -1,0 +1,95 @@
+# Code Health Score (CHS) Thresholds by Language
+# Author: DarkLightX/Dana Edwards
+
+python:
+  cyclomatic_complexity:
+    ideal_max: 5.0
+    acceptable_max: 10.0
+    poor_min: 20.0
+    higher_is_better: false
+  
+  maintainability_index:
+    ideal_max: 100.0
+    acceptable_max: 80.0
+    poor_min: 20.0
+    higher_is_better: true
+  
+  shannon_entropy:
+    ideal_max: 4.5
+    acceptable_max: 3.5
+    poor_min: 2.0
+    higher_is_better: true
+  
+  lines_of_code:
+    ideal_max: 100.0
+    acceptable_max: 200.0
+    poor_min: 500.0
+    higher_is_better: false
+  
+  nesting_depth:
+    ideal_max: 3.0
+    acceptable_max: 5.0
+    poor_min: 8.0
+    higher_is_better: false
+
+rust:
+  cyclomatic_complexity:
+    ideal_max: 4.0
+    acceptable_max: 8.0
+    poor_min: 15.0
+    higher_is_better: false
+  
+  maintainability_index:
+    ideal_max: 100.0
+    acceptable_max: 85.0
+    poor_min: 30.0
+    higher_is_better: true
+  
+  shannon_entropy:
+    ideal_max: 4.2
+    acceptable_max: 3.2
+    poor_min: 1.8
+    higher_is_better: true
+  
+  lines_of_code:
+    ideal_max: 80.0
+    acceptable_max: 150.0
+    poor_min: 400.0
+    higher_is_better: false
+  
+  unsafe_blocks:
+    ideal_max: 0.0
+    acceptable_max: 2.0
+    poor_min: 5.0
+    higher_is_better: false
+
+javascript:
+  cyclomatic_complexity:
+    ideal_max: 6.0
+    acceptable_max: 12.0
+    poor_min: 25.0
+    higher_is_better: false
+  
+  maintainability_index:
+    ideal_max: 100.0
+    acceptable_max: 75.0
+    poor_min: 15.0
+    higher_is_better: true
+  
+  shannon_entropy:
+    ideal_max: 4.0
+    acceptable_max: 3.0
+    poor_min: 1.5
+    higher_is_better: true
+  
+  lines_of_code:
+    ideal_max: 120.0
+    acceptable_max: 250.0
+    poor_min: 600.0
+    higher_is_better: false
+  
+  callback_depth:
+    ideal_max: 2.0
+    acceptable_max: 4.0
+    poor_min: 7.0
+    higher_is_better: false

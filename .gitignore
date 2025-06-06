@@ -133,3 +133,24 @@ dmypy.json
 
 # Cython debug symbols
 cython_debug/
+
+# Claude-related files
+CLAUDE.md
+.claude/
+*claude.md
+*CLAUDE*
+.claude*
+claude_*
+*_claude_*
+*_claude.*
+
+# Files with Claude signatures
+*Co-Authored-By: Claude*
+*Generated with Claude*
+*claude.ai*
+
+# Rust/Cargo artifacts
+Qualia-Rust/target/
+Qualia-Rust/Cargo.lock
+**/*.rs.bk
+*.pdb
