@@ -99,7 +99,14 @@ class BETESCalculator:
 
     @staticmethod
     def _normalize_speed_factor(raw_time_ms: float) -> float:
-        """Normalize speed factor (S') using piece-wise function."""
+        """
+        Normalize speed factor (S') using piece-wise function.
+        
+        For t <= 100ms: S' = 1.0
+        For t > 100ms: S' = 1 / (1 + log10(t/100))
+        
+        Note: At t=100, log10(100/100)=0, so S'=1/(1+0)=1.0 (continuous).
+        """
         if raw_time_ms <= 0:
             return 0.0
         if raw_time_ms <= SPEED_THRESHOLD_MS:
@@ -111,24 +118,43 @@ class BETESCalculator:
                 return 0.0
             
             log_val = math.log10(log_input)
+            # At threshold (100ms): log10(1) = 0, so 1/(1+0) = 1.0 (continuous)
             denominator = 1.0 + log_val
             
             if denominator <= EPSILON:
                 return 0.0
             
             return BETESCalculator._clamp(1.0 / denominator)
-        except ValueError:
+        except (ValueError, ZeroDivisionError):
             return 0.0
 
     @staticmethod
     def _sigmoid_normalize(value: float, k: float, center: float) -> float:
-        """Apply sigmoid normalization: 1 / (1 + exp(-k * (value - center)))."""
+        """
+        Apply sigmoid normalization: 1 / (1 + exp(-k * (value - center))).
+        
+        Uses numerically stable implementation to prevent overflow.
+        """
         try:
             exponent = -k * (value - center)
-            result = 1.0 / (1.0 + math.exp(exponent))
+            # Clamp exponent to prevent overflow (exp(±700) is near machine limits)
+            exponent = max(-700.0, min(700.0, exponent))
+            
+            # Use stable sigmoid: for x > 0, use 1/(1+exp(-x)); for x <= 0, use exp(x)/(1+exp(x))
+            if exponent > 0:
+                exp_val = math.exp(-exponent)  # exp(-x) where x>0, so < 1
+                result = 1.0 / (1.0 + exp_val)
+            else:
+                exp_val = math.exp(exponent)  # exp(x) where x<=0, so <= 1
+                result = exp_val / (1.0 + exp_val)
+            
             return BETESCalculator._clamp(result)
-        except OverflowError:
-            return 0.0 if exponent > 0 else 1.0
+        except (OverflowError, ValueError):
+            # Fallback to asymptotic behavior
+            if value < center:
+                return 0.0
+            else:
+                return 1.0
 
     @staticmethod
     def _minmax_normalize(value: float, min_val: float, max_val: float) -> float:
@@ -158,32 +184,43 @@ class BETESCalculator:
     def _calculate_weighted_geometric_mean(
         factors: List[float], weights: List[float]
     ) -> float:
-        """Calculate weighted geometric mean: (∏(factor_i^weight_i))^(1/∑weights)."""
+        """
+        Calculate weighted geometric mean: (∏(factor_i^weight_i))^(1/∑weights).
+        
+        Uses log-space arithmetic for numerical stability to prevent underflow.
+        """
         if not factors or not weights or len(factors) != len(weights):
             return 0.0
 
         sum_of_weights = sum(weights)
         if sum_of_weights == 0:
-            return 0.0
+            # Mathematically undefined - all weights zero
+            return float('nan')
 
         # Check for zero factors with non-zero weights
         for factor, weight in zip(factors, weights):
             if factor == 0.0 and weight > 0.0:
                 return 0.0
+            if factor < 0.0:
+                # Negative values not allowed (would require complex numbers)
+                return float('nan')
 
-        # Calculate weighted product
-        weighted_product = 1.0
+        # Use log-space to prevent underflow/overflow
+        # G = exp(∑(w_i * log(factor_i)) / ∑w_i)
+        log_sum = 0.0
         for factor, weight in zip(factors, weights):
-            if factor > 0.0 or weight == 0.0:
-                weighted_product *= (factor ** weight)
-            elif factor < 0.0 and weight % 1 != 0:
-                # Negative base with fractional exponent is undefined
-                return 0.0
+            if factor > 0.0 and weight > 0.0:
+                log_sum += weight * math.log(factor)
+            # If weight == 0, skip (factor^0 = 1, log(1) = 0, doesn't contribute)
 
-        if weighted_product == 0.0:
+        if log_sum == float('-inf'):
             return 0.0
 
-        return weighted_product ** (1.0 / sum_of_weights)
+        try:
+            return math.exp(log_sum / sum_of_weights)
+        except (OverflowError, ValueError):
+            # Should not happen with log-space, but handle gracefully
+            return 0.0
 
     def calculate(
         self,
