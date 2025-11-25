@@ -48,12 +48,12 @@ class TestBETESNumericalStability(unittest.TestCase):
     
     def test_all_weights_zero(self):
         """Test geometric mean with all weights zero (edge case)."""
+        import math
         weights = BETESWeights(w_m=0.0, w_e=0.0, w_a=0.0, w_b=0.0, w_s=0.0)
         calc = BETESCalculator(weights=weights)
         result = calc.calculate(0.8, 0.1, 3.0, 0.7, 100, 0.05)
-        # Current implementation returns 0.0, but mathematically undefined
-        # This tests current behavior (may want to change to NaN)
-        self.assertIsNotNone(result.geometric_mean_g)
+        # Mathematically undefined - should return NaN
+        self.assertTrue(math.isnan(result.geometric_mean_g))
     
     def test_mixed_zero_weights(self):
         """Test with some weights zero."""

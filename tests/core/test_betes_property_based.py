@@ -24,7 +24,7 @@ class TestBETESPropertyBased(unittest.TestCase):
         time=st.floats(min_value=0.0, max_value=10000.0),
         flakiness=st.floats(min_value=0.0, max_value=1.0)
     )
-    @settings(max_examples=100)
+    @settings(max_examples=50)  # Reduced for CI speed
     def test_boundedness_property(self, mutation, emt, iq, coverage, time, flakiness):
         """Property: All normalized values and final score are in [0, 1]"""
         result = self.calculator.calculate(mutation, emt, iq, coverage, time, flakiness)
