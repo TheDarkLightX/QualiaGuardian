@@ -42,6 +42,10 @@ app = typer.Typer(
 gamify_app = typer.Typer(name="gamify", help="Gamification features: XP, badges, quests, leaderboards.")
 app.add_typer(gamify_app)
 
+# Import and add self-improvement commands
+from guardian.cli.self_improve_command import app as self_improve_app
+app.add_typer(self_improve_app)
+
 @gamify_app.command("status", help="Display your current Guardian gamification status (XP, level, badges, active quest).")
 def gamify_status(
     username: Optional[str] = typer.Option(None, "--user", "-u", help="Specify the username for status. Defaults to current user.")
