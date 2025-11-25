@@ -6,7 +6,7 @@ Clean, modular project analysis with proper error handling and logging.
 
 import os
 import logging
-from typing import Dict, Any, Optional, List
+from typing import Dict, Any, Optional, List, Tuple
 from pathlib import Path
 
 from guardian.analysis.static import (
@@ -35,6 +35,8 @@ class ProjectAnalyzer:
     """
     Professional project analyzer with clean architecture and proper error handling
     """
+
+    SKIP_DIR_NAMES = {'.venv', 'venv', '.git', '__pycache__', '.pytest_cache', '.mypy_cache', '.tox'}
     
     def __init__(self, config: Optional[Dict[str, Any]] = None):
         self.config = config or {}
@@ -64,6 +66,9 @@ class ProjectAnalyzer:
         """
         logger.debug(f"Starting analysis of project: {project_path}")
         
+        # Reset analysis state for every run
+        self._reset_state()
+
         # Validate inputs
         validation_result = self._validate_inputs(project_path, test_path, user_stories_file)
         if validation_result['has_errors']:
@@ -121,6 +126,12 @@ class ProjectAnalyzer:
                 'project_path': project_path
             }
     
+    def _reset_state(self) -> None:
+        """Reset per-run state to avoid cross-run contamination."""
+        self.total_files_analyzed = 0
+        self.errors_encountered = []
+        self.warnings_encountered = []
+
     def _validate_inputs(self, project_path: str, test_path: Optional[str], 
                         user_stories_file: Optional[str]) -> Dict[str, Any]:
         """Validate input parameters"""
@@ -163,9 +174,18 @@ class ProjectAnalyzer:
             'etes_v2_enabled': self.use_etes_v2
         }
     
+    def _iter_python_files(self, project_root: Path):
+        """Yield python files under project_root while skipping known directories."""
+        for root, dirs, files in os.walk(project_root):
+            dirs[:] = [d for d in dirs if d not in self.SKIP_DIR_NAMES]
+            for file in files:
+                if file.endswith('.py'):
+                    yield Path(root) / file
+
     def _analyze_codebase(self, project_path: str) -> Dict[str, Any]:
         """Analyze codebase for metrics and code quality"""
         logger.debug("Analyzing codebase metrics...")
+        project_root = Path(project_path)
         
         metrics = {
             'total_lines_of_code_python': 0,
@@ -187,28 +207,22 @@ class ProjectAnalyzer:
         complexity_sum = 0.0
         complexity_count = 0
         
-        # Walk through Python files
-        for root, _, files in os.walk(project_path):
-            # Skip virtual environments and git directories
-            if any(skip_dir in root for skip_dir in ['.venv', '.git', '__pycache__', '.pytest_cache']):
-                continue
-            
-            for file in files:
-                if not file.endswith('.py'):
-                    continue
-                
-                file_path = os.path.join(root, file)
-                relative_path = os.path.relpath(file_path, project_path)
-                
-                try:
-                    self._analyze_single_file(file_path, relative_path, metrics, details, 
-                                            complexity_sum, complexity_count)
-                    self.total_files_analyzed += 1
-                    
-                except Exception as e:
-                    error_msg = f"Error analyzing {relative_path}: {str(e)}"
-                    self.errors_encountered.append(error_msg)
-                    logger.warning(error_msg)
+        for file_path in self._iter_python_files(project_root):
+            relative_path = os.path.relpath(file_path, project_path)
+            try:
+                comp_value, comp_count = self._analyze_single_file(
+                    file_path=file_path,
+                    relative_path=relative_path,
+                    metrics=metrics,
+                    details=details
+                )
+                complexity_sum += comp_value
+                complexity_count += comp_count
+                self.total_files_analyzed += 1
+            except Exception as e:
+                error_msg = f"Error analyzing {relative_path}: {str(e)}"
+                self.errors_encountered.append(error_msg)
+                logger.warning(error_msg)
         
         # Calculate average complexity
         if complexity_count > 0:
@@ -233,12 +247,10 @@ class ProjectAnalyzer:
             'status': 'analysis_complete' if not self.errors_encountered else 'analysis_partial'
         }
     
-    def _analyze_single_file(self, file_path: str, relative_path: str, 
-                           metrics: Dict[str, Any], details: Dict[str, Any],
-                           complexity_sum: float, complexity_count: int):
+    def _analyze_single_file(self, file_path: Path, relative_path: str, 
+                           metrics: Dict[str, Any], details: Dict[str, Any]) -> Tuple[float, int]:
         """Analyze a single Python file"""
-        with open(file_path, 'r', encoding='utf-8') as f:
-            content = f.read()
+        content = file_path.read_text(encoding='utf-8')
         
         # Count lines of code
         loc = count_lines_of_code(content)
@@ -246,9 +258,8 @@ class ProjectAnalyzer:
         
         # Calculate complexity
         file_complexity = calculate_cyclomatic_complexity(content)
-        if file_complexity > 0:
-            complexity_sum += file_complexity
-            complexity_count += 1
+        complexity_increment = file_complexity if file_complexity > 0 else 0.0
+        complexity_count_increment = 1 if file_complexity > 0 else 0
         
         # Find long functions
         long_functions = find_long_elements(content, self.max_function_lines)
@@ -265,15 +276,18 @@ class ProjectAnalyzer:
         metrics['large_classes_count'] += len(large_classes)
         
         # Find unused imports
-        unused_imports = find_unused_imports(content, file_path)
+        unused_imports = find_unused_imports(content, str(file_path))
         for imp in unused_imports:
             imp['file'] = relative_path
             details['unused_imports_details_list'].append(imp)
         metrics['unused_imports_count'] += len(unused_imports)
+        
+        return complexity_increment, complexity_count_increment
     
     def _analyze_security(self, project_path: str) -> Dict[str, Any]:
         """Perform security analysis"""
         logger.debug("Performing security analysis...")
+        project_root = Path(project_path)
         
         security_results = {
             'dependency_vulnerabilities_count': 0,
@@ -302,37 +316,28 @@ class ProjectAnalyzer:
         eval_findings = []
         secret_findings = []
         
-        for root, _, files in os.walk(project_path):
-            if any(skip_dir in root for skip_dir in ['.venv', '.git', '__pycache__']):
-                continue
+        for file_path in self._iter_python_files(project_root):
+            relative_path = os.path.relpath(file_path, project_path)
             
-            for file in files:
-                if not file.endswith('.py'):
-                    continue
+            try:
+                content = file_path.read_text(encoding='utf-8')
                 
-                file_path = os.path.join(root, file)
-                relative_path = os.path.relpath(file_path, project_path)
+                # Check for eval usage
+                eval_uses = check_for_eval_usage(content)
+                for eval_use in eval_uses:
+                    eval_use['file'] = relative_path
+                    eval_findings.append(eval_use)
                 
-                try:
-                    with open(file_path, 'r', encoding='utf-8') as f:
-                        content = f.read()
-                    
-                    # Check for eval usage
-                    eval_uses = check_for_eval_usage(content)
-                    for eval_use in eval_uses:
-                        eval_use['file'] = relative_path
-                        eval_findings.append(eval_use)
-                    
-                    # Check for hardcoded secrets
-                    secrets = check_for_hardcoded_secrets(content)
-                    for secret in secrets:
-                        secret['file'] = relative_path
-                        secret_findings.append(secret)
-                
-                except Exception as e:
-                    error_msg = f"Error checking security in {relative_path}: {str(e)}"
-                    self.errors_encountered.append(error_msg)
-                    logger.warning(error_msg)
+                # Check for hardcoded secrets
+                secrets = check_for_hardcoded_secrets(content)
+                for secret in secrets:
+                    secret['file'] = relative_path
+                    secret_findings.append(secret)
+            
+            except Exception as e:
+                error_msg = f"Error checking security in {relative_path}: {str(e)}"
+                self.errors_encountered.append(error_msg)
+                logger.warning(error_msg)
         
         security_results['eval_usage_count'] = len(eval_findings)
         security_results['hardcoded_secrets_count'] = len(secret_findings)
