@@ -44,6 +44,7 @@ dependencies = [
   "openai>=1.3.0", # Added for LLM interaction
   "gudhi>=3.8.0", # Added for Persistent Homology sensor
   "POT>=0.9.0",   # Added as a dependency for gudhi.wasserstein
+  "hypothesis>=6.0.0", # Added for property-based testing
 ]
 
 [project.scripts]

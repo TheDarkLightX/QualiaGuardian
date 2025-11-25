@@ -78,209 +78,279 @@ class OptimizerAgent:
             "file_path": "tests/test_flaky.py"
         }
 
+    def _should_stop_iteration(self, iterations: int) -> bool:
+        """Check if optimization loop should stop based on iteration limits."""
+        if self.max_iterations is not None and iterations >= self.max_iterations:
+            logger.info(f"Reached maximum iterations ({self.max_iterations}). Stopping.")
+            return True
+        if self.budget_left_cpu_minutes <= 0:
+            logger.info("CPU budget exhausted. Stopping.")
+            return True
+        return False
+
+    def _is_target_quality_reached(self, current_metrics: Dict[str, Any]) -> bool:
+        """Check if target quality threshold has been reached."""
+        if not self.target_quality_threshold:
+            return False
+        if self.target_quality_metric not in current_metrics:
+            return False
+        
+        current_quality = current_metrics.get(self.target_quality_metric)
+        if current_quality is not None and current_quality >= self.target_quality_threshold:
+            logger.info(
+                f"Target quality ({self.target_quality_metric} >= {self.target_quality_threshold}) reached. Stopping."
+            )
+            return True
+        return False
+
+    def _get_decision_action(self, current_metrics: Dict[str, Any], 
+                            available_actions: Dict[str, Any],
+                            action_posteriors: Dict[str, Any]) -> Optional[Dict[str, Any]]:
+        """Get action decision from LLM decision agent."""
+        decision_context = {
+            "current_metrics": current_metrics,
+            "available_actions": available_actions,
+            "action_posteriors": action_posteriors,
+            "budget_left_cpu_minutes": self.budget_left_cpu_minutes
+        }
+        
+        logger.info("Calling Decision-Agent...")
+        decision_response_msg = self.llm_wrapper.call_llm_with_function_calling(
+            system_prompt=DECISION_AGENT_SYSTEM_PROMPT,
+            user_context=decision_context,
+            tools=DECISION_AGENT_TOOLS,
+            tool_choice={"type": "function", "function": {"name": "pick_action"}}
+        )
+
+        if not (decision_response_msg and decision_response_msg.get("tool_calls")):
+            logger.error("Decision-Agent did not return a valid tool call.")
+            return None
+        
+        tool_call_args_str = decision_response_msg["tool_calls"][0]["function"]["arguments"]
+        try:
+            decision_args = json.loads(tool_call_args_str)
+        except json.JSONDecodeError:
+            logger.error(f"Failed to parse Decision-Agent arguments: {tool_call_args_str}.")
+            return None
+
+        action_id = decision_args.get("action_id")
+        if action_id == "NO_ACTION" or not action_id:
+            logger.info("Decision-Agent chose NO_ACTION.")
+            return None
+
+        action_params = decision_args.get("params", {})
+        rationale = decision_args.get("rationale", "No rationale provided.")
+        logger.info(f"Decision-Agent chose action: '{action_id}' with params: {action_params}. Rationale: {rationale}")
+
+        return {
+            "action_id": action_id,
+            "action_params": action_params,
+            "rationale": rationale
+        }
+
+    def _validate_action(self, action_id: str, available_actions: Dict[str, Any]) -> Optional[Dict[str, Any]]:
+        """Validate selected action and check EQRA threshold."""
+        selected_action_profile = available_actions.get(action_id)
+        if not selected_action_profile:
+            logger.error(f"Chosen action_id '{action_id}' not found in available actions.")
+            return None
+        
+        best_eqra = selected_action_profile.get("eqra_score", 0.0)
+        if best_eqra < self.eqra_epsilon:
+            logger.info(f"Best EQRA score ({best_eqra}) is below epsilon ({self.eqra_epsilon}).")
+            return None
+
+        return selected_action_profile
+
+    def _prepare_implementation_context(self, action_id: str, action_params: Dict[str, Any]) -> Optional[Dict[str, Any]]:
+        """Prepare context for implementation agent based on action type."""
+        impl_system_prompt = IMPLEMENTATION_PROMPT_MAP.get(action_id)
+        if not impl_system_prompt:
+            logger.error(f"No implementation prompt found for action '{action_id}'.")
+            return None
+
+        impl_context = {}
+        if action_id == "auto_test":
+            impl_context["surviving_mutants_data"] = self._get_surviving_mutants_data()
+            impl_context["focus_modules"] = action_params.get("focus_modules", [])
+            impl_context["target_mutant_ids"] = action_params.get("target_mutant_ids")
+        elif action_id == "flake_heal":
+            impl_context = self._get_flaky_test_data()
+            impl_context.update(action_params)
+
+        if not impl_context:
+            logger.warning(f"No context could be prepared for implementation agent for action '{action_id}'.")
+            return None
+
+        return {"context": impl_context, "system_prompt": impl_system_prompt}
+
+    def _get_patch_proposal(self, action_id: str, impl_context: Dict[str, Any]) -> Optional[Dict[str, Any]]:
+        """Get patch proposal from implementation agent."""
+        logger.info(f"Calling Implementation-Agent for action '{action_id}'...")
+        impl_response_msg = self.llm_wrapper.call_llm_with_function_calling(
+            system_prompt=impl_context["system_prompt"],
+            user_context=impl_context["context"],
+            tools=IMPLEMENTATION_AGENT_TOOLS,
+            tool_choice={"type": "function", "function": {"name": "propose_patch"}}
+        )
+
+        if not (impl_response_msg and impl_response_msg.get("tool_calls")):
+            logger.error(f"Implementation-Agent for '{action_id}' did not return a valid patch proposal.")
+            return None
+        
+        patch_tool_call_args_str = impl_response_msg["tool_calls"][0]["function"]["arguments"]
+        try:
+            patch_args = json.loads(patch_tool_call_args_str)
+        except json.JSONDecodeError:
+            logger.error(f"Failed to parse Implementation-Agent arguments: {patch_tool_call_args_str}.")
+            return None
+
+        patch_diff = patch_args.get("diff")
+        patch_comment = patch_args.get("comment", "No comment from LLM.")
+        
+        if not patch_diff:
+            logger.warning(f"Implementation-Agent for '{action_id}' proposed an empty diff.")
+            return None
+
+        logger.info(f"Implementation-Agent for '{action_id}' proposed patch. Comment: {patch_comment}")
+        return {"diff": patch_diff, "comment": patch_comment}
+
+    def _apply_and_verify_patch(self, action_id: str, patch_diff: str, 
+                                patch_comment: str) -> Dict[str, Any]:
+        """Apply patch and verify results."""
+        project_path_obj = Path(self.project_path)
+        patch_applied_successfully = apply_patch(patch_diff, project_path_obj)
+
+        verification_details = {"apply_status": patch_applied_successfully}
+        actual_delta_q = 0.0
+        actual_cost_cpu = 0.2  # Default cost for failed apply
+        verification_passed = False
+
+        if patch_applied_successfully:
+            actual_delta_q, actual_cost_cpu, verification_passed = verify_patch(
+                action_id=action_id,
+                project_root_path=project_path_obj,
+                applied_patch_details={"comment": patch_comment}
+            )
+            verification_details["verify_status"] = verification_passed
+            verification_details["measured_delta_q"] = actual_delta_q
+            verification_details["measured_cost_cpu"] = actual_cost_cpu
+        else:
+            logger.warning(f"Failed to apply patch for action '{action_id}'.")
+
+        return {
+            "delta_q": actual_delta_q,
+            "cost_cpu": actual_cost_cpu,
+            "verification_passed": verification_passed,
+            "verification_details": verification_details
+        }
+
+    def _record_failed_action(self, action_id: str, action_params: Dict[str, Any], 
+                              error_message: str, cost: float = 0.1):
+        """Record a failed action attempt."""
+        self.history_manager.record_action_outcome(
+            player_id=self.player_id,
+            action_id=action_id,
+            params_used=action_params,
+            delta_q_achieved=0.0,
+            cost_cpu_minutes_incurred=cost,
+            success=False,
+            verification_details_json=json.dumps({"error": error_message})
+        )
+        self.budget_left_cpu_minutes -= cost
+
+    def _award_xp_if_successful(self, action_id: str, selected_action_profile: Dict[str, Any]):
+        """Award XP if action was successful and has positive credible gain."""
+        credible_gain = selected_action_profile.get("estimated_delta_q_credible_lower_bound", 0.0)
+        if credible_gain > 0:
+            xp_from_action = int(1000 * credible_gain)
+            logger.info(
+                f"Action '{action_id}' successful with credible gain {credible_gain:.4f}. "
+                f"Awarding {xp_from_action} XP."
+            )
+            self.history_manager.add_xp_for_agent_action(
+                player_id=self.player_id,
+                xp_to_add=xp_from_action,
+                action_id_for_context=action_id
+            )
+        else:
+            logger.info(
+                f"Action '{action_id}' successful, but credible gain ({credible_gain:.4f}) "
+                "not positive. No XP awarded from this rule."
+            )
+
     def run_optimization_loop(self):
+        """Main optimization loop with reduced complexity."""
         logger.info("Starting optimization loop...")
         iterations = 0
 
         while True:
-            # 0. Iteration and Budget Checks
-            if self.max_iterations is not None and iterations >= self.max_iterations:
-                logger.info(f"Reached maximum iterations ({self.max_iterations}). Stopping.")
+            # Check iteration and budget limits
+            if self._should_stop_iteration(iterations):
                 break
             iterations += 1
             logger.info(f"\n--- Iteration {iterations} ---")
 
-            if self.budget_left_cpu_minutes <= 0:
-                logger.info("CPU budget exhausted. Stopping.")
-                break
-
-            # 1. Get current state
-            current_metrics = get_latest_metrics(username=self.player_id) # Agent uses its own context
-            available_actions = get_available_actions(username=self.player_id) # Potentially user-specific in future
+            # Get current state
+            current_metrics = get_latest_metrics(username=self.player_id)
+            available_actions = get_available_actions(username=self.player_id)
             action_posteriors = self.history_manager.get_action_posteriors(player_id=self.player_id)
 
             logger.debug(f"Current Metrics: {current_metrics}")
             logger.debug(f"Available Actions: {available_actions}")
             logger.debug(f"Action Posteriors: {action_posteriors}")
 
-            # Check if target quality reached (if defined)
-            if self.target_quality_threshold and self.target_quality_metric in current_metrics:
-                current_quality = current_metrics.get(self.target_quality_metric)
-                if current_quality is not None and current_quality >= self.target_quality_threshold:
-                    logger.info(f"Target quality ({self.target_quality_metric} >= {self.target_quality_threshold}) reached. Stopping.")
-                    break
-            
-            # 2. Decide Action (Call Decision-Agent LLM)
-            decision_context = {
-                "current_metrics": current_metrics,
-                "available_actions": available_actions, # This should include EQRA scores from host
-                "action_posteriors": action_posteriors,
-                "budget_left_cpu_minutes": self.budget_left_cpu_minutes
-            }
-            
-            logger.info("Calling Decision-Agent...")
-            decision_response_msg = self.llm_wrapper.call_llm_with_function_calling(
-                system_prompt=DECISION_AGENT_SYSTEM_PROMPT,
-                user_context=decision_context,
-                tools=DECISION_AGENT_TOOLS,
-                tool_choice={"type": "function", "function": {"name": "pick_action"}}
-            )
-
-            if not (decision_response_msg and decision_response_msg.get("tool_calls")):
-                logger.error("Decision-Agent did not return a valid tool call. Stopping.")
-                break
-            
-            tool_call_args_str = decision_response_msg["tool_calls"][0]["function"]["arguments"]
-            try:
-                decision_args = json.loads(tool_call_args_str)
-            except json.JSONDecodeError:
-                logger.error(f"Failed to parse Decision-Agent arguments: {tool_call_args_str}. Stopping.")
+            # Check if target quality reached
+            if self._is_target_quality_reached(current_metrics):
                 break
 
-            action_id = decision_args.get("action_id")
-            action_params = decision_args.get("params", {})
-            rationale = decision_args.get("rationale", "No rationale provided.")
-            logger.info(f"Decision-Agent chose action: '{action_id}' with params: {action_params}. Rationale: {rationale}")
-
-            if action_id == "NO_ACTION" or not action_id:
-                logger.info("Decision-Agent chose NO_ACTION. Stopping.")
+            # Get decision from LLM
+            decision = self._get_decision_action(current_metrics, available_actions, action_posteriors)
+            if not decision:
                 break
 
-            # Check EQRA threshold (assuming EQRA is part of available_actions[action_id])
-            selected_action_profile = available_actions.get(action_id)
+            action_id = decision["action_id"]
+            action_params = decision["action_params"]
+
+            # Validate action
+            selected_action_profile = self._validate_action(action_id, available_actions)
             if not selected_action_profile:
-                logger.error(f"Chosen action_id '{action_id}' not found in available actions. Stopping.")
-                break
-            
-            best_eqra = selected_action_profile.get("eqra_score", 0.0)
-            if best_eqra < self.eqra_epsilon:
-                logger.info(f"Best EQRA score ({best_eqra}) is below epsilon ({self.eqra_epsilon}). Stopping.")
                 break
 
-            # 3. Implement Action (Call Implementation-Agent LLM)
-            impl_system_prompt = IMPLEMENTATION_PROMPT_MAP.get(action_id)
-            if not impl_system_prompt:
-                logger.error(f"No implementation prompt found for action '{action_id}'. Skipping action.")
-                # Potentially record this as a failed/skipped action in history
+            # Prepare implementation context
+            impl_prep = self._prepare_implementation_context(action_id, action_params)
+            if not impl_prep:
+                self._record_failed_action(action_id, action_params, "No implementation context available")
                 continue
 
-            # Prepare context for implementation agent based on action_id
-            impl_context = {}
-            if action_id == "auto_test":
-                impl_context["surviving_mutants_data"] = self._get_surviving_mutants_data()
-                impl_context["focus_modules"] = action_params.get("focus_modules", []) # Get from decision
-                impl_context["target_mutant_ids"] = action_params.get("target_mutant_ids")
-            elif action_id == "flake_heal":
-                impl_context = self._get_flaky_test_data() # Contains snippet, trace, path
-                # Params might include specific line numbers or retry strategies from Decision-Agent
-                impl_context.update(action_params)
+            # Get patch proposal
+            patch_proposal = self._get_patch_proposal(action_id, impl_prep)
+            if not patch_proposal:
+                self._record_failed_action(action_id, action_params, "LLM failed to propose patch")
+                continue
 
-
-            if not impl_context:
-                 logger.warning(f"No context could be prepared for implementation agent for action '{action_id}'. Skipping.")
-                 continue
-
-            logger.info(f"Calling Implementation-Agent for action '{action_id}'...")
-            impl_response_msg = self.llm_wrapper.call_llm_with_function_calling(
-                system_prompt=impl_system_prompt,
-                user_context=impl_context,
-                tools=IMPLEMENTATION_AGENT_TOOLS,
-                tool_choice={"type": "function", "function": {"name": "propose_patch"}}
+            # Apply and verify patch
+            patch_result = self._apply_and_verify_patch(
+                action_id, patch_proposal["diff"], patch_proposal["comment"]
             )
 
-            if not (impl_response_msg and impl_response_msg.get("tool_calls")):
-                logger.error(f"Implementation-Agent for '{action_id}' did not return a valid patch proposal. Skipping action.")
-                # Record failed attempt
-                self.history_manager.record_action_outcome(
-                    player_id=self.player_id, action_id=action_id, params_used=action_params,
-                    delta_q_achieved=0.0, cost_cpu_minutes_incurred=0.1, # Small cost for failed LLM call
-                    success=False, verification_details_json=json.dumps({"error": "LLM failed to propose patch"})
-                )
-                self.budget_left_cpu_minutes -= 0.1
-                continue
-            
-            patch_tool_call_args_str = impl_response_msg["tool_calls"][0]["function"]["arguments"]
-            try:
-                patch_args = json.loads(patch_tool_call_args_str)
-            except json.JSONDecodeError:
-                logger.error(f"Failed to parse Implementation-Agent arguments: {patch_tool_call_args_str}. Skipping.")
-                self.history_manager.record_action_outcome(
-                    player_id=self.player_id, action_id=action_id, params_used=action_params,
-                    delta_q_achieved=0.0, cost_cpu_minutes_incurred=0.1, 
-                    success=False, verification_details_json=json.dumps({"error": "LLM returned unparsable patch proposal"})
-                )
-                self.budget_left_cpu_minutes -= 0.1
-                continue
-
-            patch_diff = patch_args.get("diff")
-            patch_comment = patch_args.get("comment", "No comment from LLM.")
-            logger.info(f"Implementation-Agent for '{action_id}' proposed patch. Comment: {patch_comment}")
-
-            if not patch_diff:
-                logger.warning(f"Implementation-Agent for '{action_id}' proposed an empty diff. Skipping action.")
-                # Record attempt
-                self.history_manager.record_action_outcome(
-                    player_id=self.player_id, action_id=action_id, params_used=action_params,
-                    delta_q_achieved=0.0, cost_cpu_minutes_incurred=0.1,
-                    success=False, verification_details_json=json.dumps({"error": "LLM proposed empty diff"})
-                )
-                self.budget_left_cpu_minutes -= 0.1
-                continue
-
-            # 4. Apply & Verify Patch
-            # For now, project_path is a string, agent_interface expects Path
-            project_path_obj = Path(self.project_path) 
-            patch_applied_successfully = apply_patch(patch_diff, project_path_obj)
-
-            actual_delta_q = 0.0
-            actual_cost_cpu = 0.0 # Cost of apply attempt if it fails before verify
-            verification_passed = False
-            verification_details = {"apply_status": patch_applied_successfully}
-
-            if patch_applied_successfully:
-                actual_delta_q, actual_cost_cpu, verification_passed = verify_patch(
-                    action_id=action_id,
-                    project_root_path=project_path_obj,
-                    applied_patch_details={"comment": patch_comment} # Could include files_touched from diff
-                )
-                verification_details["verify_status"] = verification_passed
-                verification_details["measured_delta_q"] = actual_delta_q
-                verification_details["measured_cost_cpu"] = actual_cost_cpu
-            else:
-                logger.warning(f"Failed to apply patch for action '{action_id}'.")
-                actual_cost_cpu = 0.2 # Small cost for failed apply
-
-            # 5. Update History & Budget
+            # Update history and budget
             self.history_manager.record_action_outcome(
                 player_id=self.player_id,
                 action_id=action_id,
                 params_used=action_params,
-                delta_q_achieved=actual_delta_q if verification_passed else 0.0,
-                cost_cpu_minutes_incurred=actual_cost_cpu,
-                success=verification_passed,
-                verification_details_json=json.dumps(verification_details)
+                delta_q_achieved=patch_result["delta_q"] if patch_result["verification_passed"] else 0.0,
+                cost_cpu_minutes_incurred=patch_result["cost_cpu"],
+                success=patch_result["verification_passed"],
+                verification_details_json=json.dumps(patch_result["verification_details"])
             )
-            self.budget_left_cpu_minutes -= actual_cost_cpu
-            
-            if verification_passed and selected_action_profile:
-                # Award XP based on credible lower-bound gain
-                # selected_action_profile contains 'estimated_delta_q_credible_lower_bound'
-                credible_gain = selected_action_profile.get("estimated_delta_q_credible_lower_bound", 0.0)
-                if credible_gain > 0: # Only award XP for positive credible gain
-                    xp_from_action = int(1000 * credible_gain)
-                    logger.info(f"Action '{action_id}' successful with credible gain {credible_gain:.4f}. Awarding {xp_from_action} XP.")
-                    self.history_manager.add_xp_for_agent_action(
-                        player_id=self.player_id,
-                        xp_to_add=xp_from_action,
-                        action_id_for_context=action_id
-                    )
-                else:
-                    logger.info(f"Action '{action_id}' successful, but credible gain ({credible_gain:.4f}) not positive. No XP awarded from this rule.")
+            self.budget_left_cpu_minutes -= patch_result["cost_cpu"]
+
+            # Award XP if successful
+            if patch_result["verification_passed"]:
+                self._award_xp_if_successful(action_id, selected_action_profile)
 
             logger.info(f"Budget left: {self.budget_left_cpu_minutes:.2f} CPU minutes.")
-
-            # TODO: Implement reflection loop (Phase 1, Step 5 from blueprint)
-            # TODO: Implement safety guards like cumulative XP drop (Phase 1, Step 6)
 
         logger.info("Optimization loop finished.")
         self.history_manager.close()

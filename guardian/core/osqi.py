@@ -283,27 +283,22 @@ def classify_osqi(
     score: float,
     risk_class_name: Optional[str],
     risk_definitions: Dict[str, Dict[str, Any]],
-    metric_name: str = "OSQI" # Default metric name for messages
+    metric_name: str = "OSQI"
 ) -> Dict[str, Any]:
     """
     Evaluates the OSQI score against a defined risk class and its threshold.
-    Uses the 'min_score' key from risk_definitions.
 
     Args:
         score: The calculated OSQI score (0.0 to 1.0).
         risk_class_name: The name of the risk class to evaluate against.
         risk_definitions: A dictionary loaded from risk_classes.yml.
-        metric_name: The name of the metric being classified.
+        metric_name: The name of the metric being classified (default: "OSQI").
 
     Returns:
         A dictionary with classification details.
     """
-    # This function can reuse the logic from betes.classify_betes
-    # For now, let's duplicate and adapt slightly.
-    # Ideally, factor out the common classification logic.
-    from .betes import classify_betes as classify_metric_score 
-    # Re-using the same classification logic, just passing "OSQI" as metric name
-    return classify_metric_score(score, risk_class_name, risk_definitions, metric_name=metric_name)
+    from .classification import classify_metric_score
+    return classify_metric_score(score, risk_class_name, risk_definitions, metric_name)
 
 
 if __name__ == "__main__":

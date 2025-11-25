@@ -24,18 +24,122 @@ logger = logging.getLogger(__name__)
 
 # Removed placeholder _get_raw_metrics_for_betes as CLI now calls sensors.
 
+def _calculate_betes(
+    config: QualityConfig,
+    raw_metrics_betes: Optional[Dict[str, Any]]
+) -> Tuple[float, BETESComponentsV3]:
+    """Calculate bE-TES v3.0 or v3.1 score."""
+    if not raw_metrics_betes:
+        logger.error(f"Raw metrics not provided for bE-TES {config.mode} calculation.")
+        return 0.0, BETESComponentsV3()
+
+    betes_settings_v3_1 = (
+        config.betes_v3_1_settings if config.mode == "betes_v3.1" else None
+    )
+    
+    calculator = BETESCalculator(
+        weights=config.betes_weights,
+        settings_v3_1=betes_settings_v3_1
+    )
+    
+    components = calculator.calculate(
+        raw_mutation_score=raw_metrics_betes.get("raw_mutation_score", 0.0),
+        raw_emt_gain=raw_metrics_betes.get("raw_emt_gain", 0.0),
+        raw_assertion_iq=raw_metrics_betes.get("raw_assertion_iq", 1.0),
+        raw_behaviour_coverage=raw_metrics_betes.get("raw_behaviour_coverage", 0.0),
+        raw_median_test_time_ms=raw_metrics_betes.get("raw_median_test_time_ms", 1000.0),
+        raw_flakiness_rate=raw_metrics_betes.get("raw_flakiness_rate", 0.0)
+    )
+    
+    logger.info(f"bE-TES {config.mode} calculated: {components.betes_score:.3f}")
+    return components.betes_score, components
+
+
+def _calculate_osqi(
+    config: QualityConfig,
+    raw_metrics_betes: Optional[Dict[str, Any]],
+    project_path: Optional[str],
+    project_language: str
+) -> Tuple[float, OSQIResult]:
+    """Calculate OSQI v1.0 score."""
+    if not project_path:
+        logger.error("Project path not provided for OSQI v1.0 calculation.")
+        return 0.0, OSQIResult(insights=["Error: Project path is required for OSQI."])
+
+    if not raw_metrics_betes:
+        logger.error("Raw metrics for bE-TES (a pillar of OSQI) not provided.")
+        return 0.0, OSQIResult(insights=["Error: bE-TES metrics (OSQI pillar) not available."])
+
+    # Calculate bE-TES v3.1 score first (as it's a pillar)
+    betes_calculator = BETESCalculator(
+        weights=config.betes_weights,
+        settings_v3_1=config.betes_v3_1_settings
+    )
+    betes_components = betes_calculator.calculate(
+        raw_mutation_score=raw_metrics_betes.get("raw_mutation_score", 0.0),
+        raw_emt_gain=raw_metrics_betes.get("raw_emt_gain", 0.0),
+        raw_assertion_iq=raw_metrics_betes.get("raw_assertion_iq", 1.0),
+        raw_behaviour_coverage=raw_metrics_betes.get("raw_behaviour_coverage", 0.0),
+        raw_median_test_time_ms=raw_metrics_betes.get("raw_median_test_time_ms", 1000.0),
+        raw_flakiness_rate=raw_metrics_betes.get("raw_flakiness_rate", 0.0)
+    )
+    logger.info(f"OSQI Pillar: bE-TES v3.1 score = {betes_components.betes_score:.3f}")
+
+    # Collect other raw pillar inputs using sensors
+    raw_chs = chs_sensor.get_raw_chs_sub_metrics(project_path, project_language, config={})
+    raw_vuln_density = security_sensor.get_raw_weighted_vulnerability_density(project_path, config={})
+    raw_arch_violation = arch_sensor.get_raw_architectural_violation_score(project_path, config={})
+
+    osqi_inputs = OSQIRawPillarsInput(
+        betes_score=betes_components.betes_score,
+        raw_code_health_sub_metrics=raw_chs,
+        raw_weighted_vulnerability_density=raw_vuln_density,
+        raw_architectural_violation_score=raw_arch_violation
+    )
+
+    # Calculate OSQI
+    chs_thresholds_path = getattr(
+        config, 'chs_thresholds_path', "guardian_ai_tool/config/chs_thresholds.yml"
+    )
+    osqi_calculator = OSQICalculator(
+        osqi_weights=config.osqi_weights,
+        chs_thresholds_path=chs_thresholds_path
+    )
+    osqi_result = osqi_calculator.calculate(osqi_inputs, project_language)
+    
+    logger.info(f"OSQI v1.0 calculated: {osqi_result.osqi_score:.3f}")
+    return osqi_result.osqi_score, osqi_result
+
+
+def _calculate_etes_v2(
+    config: QualityConfig,
+    test_suite_data: Optional[Dict[str, Any]],
+    codebase_data: Optional[Dict[str, Any]],
+    previous_score: Optional[float]
+) -> Tuple[float, ETESComponents]:
+    """Calculate E-TES v2.0 score."""
+    if test_suite_data is None or codebase_data is None:
+        logger.error("Test suite or codebase data not provided for E-TES v2.0 calculation.")
+        return 0.0, ETESComponents()
+    
+    logger.info("Calculating E-TES v2.0...")
+    calculator = ETESCalculator(config=config)
+    score, components = calculator.calculate_etes(
+        test_suite_data, codebase_data, previous_score
+    )
+    logger.info(f"E-TES v2.0 calculated: {score:.3f}")
+    return score, components
+
+
 def calculate_quality_score(
     config: QualityConfig,
-    # For bE-TES modes, raw_metrics_betes is expected to be populated by the CLI
     raw_metrics_betes: Optional[Dict[str, Any]] = None,
-    # For E-TES v2 mode
     test_suite_data: Optional[Dict[str, Any]] = None,
     codebase_data: Optional[Dict[str, Any]] = None,
     previous_score: Optional[float] = None,
-    # For OSQI mode, project_path and project_language are needed for sensors
     project_path: Optional[str] = None,
-    project_language: Optional[str] = "python" # Default language for CHS
-) -> Tuple[float, Union[ETESComponents, BETESComponentsV3, OSQIResult, Dict]]: # Added OSQIResult and Dict for error
+    project_language: Optional[str] = "python"
+) -> Tuple[float, Union[ETESComponents, BETESComponentsV3, OSQIResult, Dict]]:
     """
     Calculates the quality score based on the mode specified in the config.
     Dispatches to E-TES v2.0, bE-TES v3.0/v3.1, or OSQI v1.0 calculator.
@@ -53,122 +157,20 @@ def calculate_quality_score(
         A tuple containing the calculated score (float) and the components object
         (ETESComponents, BETESComponentsV3, OSQIResult, or an error dict).
     """
-    if config.mode == "betes_v3" or config.mode == "betes_v3.1":
-        logger.info(f"Calculating bE-TES {config.mode}...")
-        if not raw_metrics_betes:
-            logger.error(f"Raw metrics not provided for bE-TES {config.mode} calculation.")
-            return 0.0, BETESComponentsV3()
-
-        # For betes_v3.1, pass the specific settings
-        betes_settings_v3_1 = config.betes_v3_1_settings if config.mode == "betes_v3.1" else None
-        
-        calculator = BETESCalculator(
-            weights=config.betes_weights,
-            settings_v3_1=betes_settings_v3_1
-        )
-        components_v3 = calculator.calculate(
-            raw_mutation_score=raw_metrics_betes.get("raw_mutation_score", 0.0),
-            raw_emt_gain=raw_metrics_betes.get("raw_emt_gain", 0.0),
-            raw_assertion_iq=raw_metrics_betes.get("raw_assertion_iq", 1.0),
-            raw_behaviour_coverage=raw_metrics_betes.get("raw_behaviour_coverage", 0.0),
-            raw_median_test_time_ms=raw_metrics_betes.get("raw_median_test_time_ms", 1000.0),
-            raw_flakiness_rate=raw_metrics_betes.get("raw_flakiness_rate", 0.0)
-        )
-        logger.info(f"bE-TES {config.mode} calculated: {components_v3.betes_score:.3f}")
-        
-        # Perform classification if risk_class is set
-        classification_result = None
-        if config.risk_class:
-            # This part is tricky as risk_definitions are loaded in CLI.
-            # For now, assume CLI handles classification display.
-            # If this function needs to return it, risk_definitions must be passed in.
-            # The CLI currently does this after calling this function.
-            pass # Classification handled by CLI based on the returned score and components.
-
-        return components_v3.betes_score, components_v3
-        
-    elif config.mode == "osqi_v1":
-        logger.info("Calculating OSQI v1.0...")
-        if not project_path:
-            logger.error("Project path not provided for OSQI v1.0 calculation.")
-            return 0.0, OSQIResult(insights=["Error: Project path is required for OSQI."])
-
-        # 1. Calculate bE-TES v3.1 score first (as it's a pillar)
-        # The CLI should have already collected raw_metrics_betes if --run-quality was used.
-        # If this function is called for OSQI, it implies bE-TES sensors ran.
-        if not raw_metrics_betes:
-            logger.error("Raw metrics for bE-TES (a pillar of OSQI) not provided.")
-            # Attempt to collect them now if not provided (this duplicates CLI logic, ideally CLI provides them)
-            # For simplicity here, we'll assume CLI provides them or we error out.
-            # If we were to collect them here:
-            # logger.info("Attempting to collect bE-TES metrics for OSQI...")
-            # raw_metrics_betes = _collect_betes_metrics_for_osqi(config, project_path) # New helper needed
-            return 0.0, OSQIResult(insights=["Error: bE-TES metrics (OSQI pillar) not available."])
-
-        betes_calculator_for_osqi = BETESCalculator(
-            weights=config.betes_weights,
-            settings_v3_1=config.betes_v3_1_settings # Use v3.1 settings for the bE-TES pillar
-        )
-        betes_components_for_osqi = betes_calculator_for_osqi.calculate(
-            raw_mutation_score=raw_metrics_betes.get("raw_mutation_score", 0.0),
-            raw_emt_gain=raw_metrics_betes.get("raw_emt_gain", 0.0),
-            raw_assertion_iq=raw_metrics_betes.get("raw_assertion_iq", 1.0),
-            raw_behaviour_coverage=raw_metrics_betes.get("raw_behaviour_coverage", 0.0),
-            raw_median_test_time_ms=raw_metrics_betes.get("raw_median_test_time_ms", 1000.0),
-            raw_flakiness_rate=raw_metrics_betes.get("raw_flakiness_rate", 0.0)
-        )
-        current_betes_score = betes_components_for_osqi.betes_score
-        logger.info(f"OSQI Pillar: bE-TES v3.1 score = {current_betes_score:.3f}")
-
-        # 2. Collect other raw pillar inputs using sensors
-        # Sensor configs can be passed via QualityConfig if needed, or use defaults.
-        # For now, passing empty dicts for sensor configs.
-        raw_chs = chs_sensor.get_raw_chs_sub_metrics(project_path, project_language, config={})
-        raw_vuln_density = security_sensor.get_raw_weighted_vulnerability_density(project_path, config={})
-        raw_arch_violation = arch_sensor.get_raw_architectural_violation_score(project_path, config={})
-
-        osqi_inputs = OSQIRawPillarsInput(
-            betes_score=current_betes_score,
-            raw_code_health_sub_metrics=raw_chs,
-            raw_weighted_vulnerability_density=raw_vuln_density,
-            raw_architectural_violation_score=raw_arch_violation
-        )
-
-        # 3. Calculate OSQI
-        osqi_calculator = OSQICalculator(
-            osqi_weights=config.osqi_weights, # From QualityConfig
-            chs_thresholds_path=config.chs_thresholds_path if hasattr(config, 'chs_thresholds_path') else "guardian_ai_tool/config/chs_thresholds.yml"
-        )
-        osqi_result_obj = osqi_calculator.calculate(osqi_inputs, project_language)
-        
-        logger.info(f"OSQI v1.0 calculated: {osqi_result_obj.osqi_score:.3f}")
-        
-        # Classification for OSQI (if risk_class is set)
-        # The CLI will handle loading risk_definitions and calling classify_osqi
-        # This function returns the OSQIResult, CLI uses its .osqi_score for classification.
-        # If this function were to return classification, it would need risk_definitions.
-        # For consistency, let CLI do the final classification step.
-        # However, we can store the classification in the OSQIResult if needed by adding a field.
-        # For now, the CLI will call classify_osqi using the score from this result.
-
-        return osqi_result_obj.osqi_score, osqi_result_obj
-
-    elif config.mode == "etes_v2":
-        if test_suite_data is None or codebase_data is None:
-            logger.error("Test suite or codebase data not provided for E-TES v2.0 calculation.")
-            return 0.0, ETESComponents()
-        logger.info("Calculating E-TES v2.0...")
-        # ETESCalculator expects the full QualityConfig, it will use its relevant parts.
-        calculator = ETESCalculator(config=config)
-        score_v2, components_v2 = calculator.calculate_etes(
-            test_suite_data, codebase_data, previous_score
-        )
-        logger.info(f"E-TES v2.0 calculated: {score_v2:.3f}")
-        return score_v2, components_v2
-    else:
-        logger.error(f"Unknown quality score mode: {config.mode}")
-        # Return a default/error state. ETESComponents is used as a generic fallback here.
-        return 0.0, ETESComponents()
+    # Dispatch table for different calculation modes
+    dispatch_map = {
+        "betes_v3": lambda: _calculate_betes(config, raw_metrics_betes),
+        "betes_v3.1": lambda: _calculate_betes(config, raw_metrics_betes),
+        "osqi_v1": lambda: _calculate_osqi(config, raw_metrics_betes, project_path, project_language),
+        "etes_v2": lambda: _calculate_etes_v2(config, test_suite_data, codebase_data, previous_score),
+    }
+    
+    calculator_func = dispatch_map.get(config.mode)
+    if calculator_func:
+        return calculator_func()
+    
+    logger.error(f"Unknown quality score mode: {config.mode}")
+    return 0.0, ETESComponents()
 
 
 def calculate_etes_v2(test_suite_data: Dict[str, Any],
