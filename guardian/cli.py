@@ -24,7 +24,7 @@ from guardian.evolution.types import EvolutionHistory # Added for ec-evolve
 from guardian.history import HistoryManager # Added for gamify status
 from guardian.analytics.shapley import calculate_shapley_values, TestId # Added for gamify crown
 # from guardian.analytics.metric_stubs import metric_evaluator_stub, TEST_CACHE # No longer directly used by crown
-from guardian.core.api import evaluate_subset # Added for Layer 1 Shapley
+from guardian.core import api as core_api # Added for Layer 1 Shapley
 from guardian.evolution.smart_mutator import Mutant # For type hinting the cache
 from guardian.analytics.metric_stubs import TEST_CACHE # Still used for test_ids source in S1
 
@@ -122,6 +122,12 @@ def gamify_crown(
         dir_okay=True,
         readable=True,
         resolve_path=True # Resolve to an absolute path
+    ),
+    username: Optional[str] = typer.Option(
+        None,
+        "--user",
+        "-u",
+        help="Username for history tracking and gamification metrics."
     )
 ):
     """
@@ -171,7 +177,7 @@ def gamify_crown(
         def metric_eval_for_shapley(selected_tests_subset: List[TestId]) -> float:
             # Ensure selected_tests_subset contains Path objects.
             # `discovered_tests` are already resolved Paths.
-            return evaluate_subset(
+            return core_api.evaluate_subset(
                 project_path=project_root,
                 selected_tests=selected_tests_subset
                 # mutant_cache argument removed from evaluate_subset
@@ -212,6 +218,11 @@ def gamify_crown(
         
         # Print the table wrapped in a Panel for the title
         formatter.console.print(Panel(table, title=f"[section_title]{table_title}[/section_title]", expand=False))
+        # Provide a plain-text summary with full paths to keep CI output searchable
+        summary_lines = ["Top test summary (full paths):"]
+        for rank, test_path, value in top_tests_data:
+            summary_lines.append(f"{rank}. {test_path} -> {value}")
+        formatter.console.print("\n".join(summary_lines))
 
         # Record the run
         try:
