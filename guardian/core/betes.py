@@ -6,10 +6,22 @@ optional sigmoid normalization for M' and E', and revised S' calculation.
 """
 
 import math
+import time
 from dataclasses import dataclass, field
 from typing import Dict, Any, Optional, Tuple, List
-# Assuming BETESSettingsV31 and BETESWeights will be in .etes or a renamed quality_config.py
 from .etes import BETESSettingsV31, BETESWeights
+
+# Constants for normalization
+MUTATION_SCORE_MIN = 0.6
+MUTATION_SCORE_MAX = 0.95
+MUTATION_SCORE_CENTER = 0.775
+EMT_GAIN_CENTER = 0.125
+EMT_GAIN_DIVISOR = 0.25
+ASSERTION_IQ_MIN = 1.0
+ASSERTION_IQ_RANGE = 4.0
+SPEED_THRESHOLD_MS = 100.0
+SPEED_DIVISOR = 100.0
+EPSILON = 1e-9
 
 
 @dataclass
@@ -57,12 +69,128 @@ class BETESCalculator:
         self.weights = weights if weights is not None else BETESWeights()
         self.settings_v3_1 = settings_v3_1 if settings_v3_1 is not None else BETESSettingsV31()
 
+    @staticmethod
+    def _normalize_mutation_score(raw_score: float, settings: BETESSettingsV31) -> float:
+        """Normalize mutation score (M') using sigmoid or min-max normalization."""
+        if settings.smooth_m:
+            return BETESCalculator._sigmoid_normalize(
+                raw_score, settings.k_m, MUTATION_SCORE_CENTER
+            )
+        return BETESCalculator._minmax_normalize(
+            raw_score, MUTATION_SCORE_MIN, MUTATION_SCORE_MAX
+        )
+
+    @staticmethod
+    def _normalize_emt_gain(raw_gain: float, settings: BETESSettingsV31) -> float:
+        """Normalize EMT gain (E') using sigmoid or clip normalization."""
+        if settings.smooth_e:
+            return BETESCalculator._sigmoid_normalize(
+                raw_gain, settings.k_e, EMT_GAIN_CENTER
+            )
+        return BETESCalculator._clip_normalize(raw_gain, EMT_GAIN_DIVISOR)
+
+    @staticmethod
+    def _normalize_assertion_iq(raw_iq: float) -> float:
+        """Normalize assertion IQ (A') from 1-5 scale to 0-1."""
+        if ASSERTION_IQ_RANGE == 0:
+            return 0.0
+        normalized = (raw_iq - ASSERTION_IQ_MIN) / ASSERTION_IQ_RANGE
+        return BETESCalculator._clamp(normalized)
+
+    @staticmethod
+    def _normalize_speed_factor(raw_time_ms: float) -> float:
+        """Normalize speed factor (S') using piece-wise function."""
+        if raw_time_ms <= 0:
+            return 0.0
+        if raw_time_ms <= SPEED_THRESHOLD_MS:
+            return 1.0
+        
+        try:
+            log_input = raw_time_ms / SPEED_DIVISOR
+            if log_input <= 0:
+                return 0.0
+            
+            log_val = math.log10(log_input)
+            denominator = 1.0 + log_val
+            
+            if denominator <= EPSILON:
+                return 0.0
+            
+            return BETESCalculator._clamp(1.0 / denominator)
+        except ValueError:
+            return 0.0
+
+    @staticmethod
+    def _sigmoid_normalize(value: float, k: float, center: float) -> float:
+        """Apply sigmoid normalization: 1 / (1 + exp(-k * (value - center)))."""
+        try:
+            exponent = -k * (value - center)
+            result = 1.0 / (1.0 + math.exp(exponent))
+            return BETESCalculator._clamp(result)
+        except OverflowError:
+            return 0.0 if exponent > 0 else 1.0
+
+    @staticmethod
+    def _minmax_normalize(value: float, min_val: float, max_val: float) -> float:
+        """Apply min-max normalization: (value - min) / (max - min)."""
+        range_size = max_val - min_val
+        if range_size == 0:
+            return 1.0 if value >= min_val else 0.0
+        
+        normalized = (value - min_val) / range_size
+        return BETESCalculator._clamp(normalized)
+
+    @staticmethod
+    def _clip_normalize(value: float, divisor: float) -> float:
+        """Apply clip normalization: clip(value / divisor, 0, 1)."""
+        if divisor == 0:
+            return 0.0 if value < 0 else 1.0
+        
+        normalized = value / divisor
+        return BETESCalculator._clamp(normalized)
+
+    @staticmethod
+    def _clamp(value: float, min_val: float = 0.0, max_val: float = 1.0) -> float:
+        """Clamp value to [min_val, max_val] range."""
+        return max(min_val, min(max_val, value))
+
+    @staticmethod
+    def _calculate_weighted_geometric_mean(
+        factors: List[float], weights: List[float]
+    ) -> float:
+        """Calculate weighted geometric mean: (∏(factor_i^weight_i))^(1/∑weights)."""
+        if not factors or not weights or len(factors) != len(weights):
+            return 0.0
+
+        sum_of_weights = sum(weights)
+        if sum_of_weights == 0:
+            return 0.0
+
+        # Check for zero factors with non-zero weights
+        for factor, weight in zip(factors, weights):
+            if factor == 0.0 and weight > 0.0:
+                return 0.0
+
+        # Calculate weighted product
+        weighted_product = 1.0
+        for factor, weight in zip(factors, weights):
+            if factor > 0.0 or weight == 0.0:
+                weighted_product *= (factor ** weight)
+            elif factor < 0.0 and weight % 1 != 0:
+                # Negative base with fractional exponent is undefined
+                return 0.0
+
+        if weighted_product == 0.0:
+            return 0.0
+
+        return weighted_product ** (1.0 / sum_of_weights)
+
     def calculate(
         self,
         raw_mutation_score: float,
-        raw_emt_gain: float, # This is E_raw = Final_MS - Initial_MS
-        raw_assertion_iq: float, # Mean rubric score (1-5)
-        raw_behaviour_coverage: float, # Ratio: Covered_Critical / Total_Critical
+        raw_emt_gain: float,
+        raw_assertion_iq: float,
+        raw_behaviour_coverage: float,
         raw_median_test_time_ms: float,
         raw_flakiness_rate: float
     ) -> BETESComponents:
@@ -81,7 +209,6 @@ class BETESCalculator:
             A BETESComponents object populated with all raw, normalized, intermediate,
             and final score values.
         """
-        import time # Add import for calculation time
         start_time = time.monotonic()
 
         components = BETESComponents(
@@ -94,77 +221,18 @@ class BETESCalculator:
             applied_weights=self.weights
         )
 
-        # 1. Normalize factors
-        # M' (Mutation Score)
-        if self.settings_v3_1.smooth_m:
-            # Sigmoid normalization: 1 / (1 + exp(-k_m * (M - 0.775)))
-            # k_m from settings, center is 0.775
-            try:
-                val = -self.settings_v3_1.k_m * (raw_mutation_score - 0.775)
-                components.norm_mutation_score = 1 / (1 + math.exp(val))
-            except OverflowError: # math.exp can overflow
-                 components.norm_mutation_score = 0.0 if val > 0 else 1.0 # exp(large_positive) -> inf, exp(large_negative) -> 0
-        else:
-            # Min-max normalization: minmax(M, 0.6, 0.95)
-            if (0.95 - 0.6) == 0: # Avoid division by zero if lo == hi
-                 components.norm_mutation_score = 0.0 if raw_mutation_score < 0.6 else 1.0
-            else:
-                components.norm_mutation_score = max(0.0, min(1.0, (raw_mutation_score - 0.6) / (0.95 - 0.6)))
-        components.norm_mutation_score = max(0.0, min(1.0, components.norm_mutation_score)) # Ensure 0-1
+        # Normalize all factors
+        components.norm_mutation_score = self._normalize_mutation_score(
+            raw_mutation_score, self.settings_v3_1
+        )
+        components.norm_emt_gain = self._normalize_emt_gain(
+            raw_emt_gain, self.settings_v3_1
+        )
+        components.norm_assertion_iq = self._normalize_assertion_iq(raw_assertion_iq)
+        components.norm_behaviour_coverage = self._clamp(raw_behaviour_coverage)
+        components.norm_speed_factor = self._normalize_speed_factor(raw_median_test_time_ms)
 
-        # E' (EMT Gain)
-        if self.settings_v3_1.smooth_e:
-            # Sigmoid normalization: 1 / (1 + exp(-k_e * (E_raw - 0.125)))
-            # k_e from settings, center is 0.125
-            try:
-                val = -self.settings_v3_1.k_e * (raw_emt_gain - 0.125)
-                components.norm_emt_gain = 1 / (1 + math.exp(val))
-            except OverflowError:
-                components.norm_emt_gain = 0.0 if val > 0 else 1.0
-        else:
-            # Clip normalization: clip(E_raw / 0.25, 0, 1)
-            components.norm_emt_gain = max(0.0, min(1.0, raw_emt_gain / 0.25 if 0.25 != 0 else (0.0 if raw_emt_gain < 0 else float('inf')) ))
-        components.norm_emt_gain = max(0.0, min(1.0, components.norm_emt_gain)) # Ensure 0-1
-
-        # A' (Assertion IQ)
-        # A_raw is raw_assertion_iq (1-5)
-        components.norm_assertion_iq = max(0.0, min(1.0, (raw_assertion_iq - 1.0) / 4.0 if 4.0 !=0 else 0.0))
-
-        # B' = Covered_Critical_Behaviors / Total_Critical_Behaviors
-        # raw_behaviour_coverage is already this ratio
-        components.norm_behaviour_coverage = max(0.0, min(1.0, raw_behaviour_coverage))
-
-        # S' (Speed Factor) - Piece-wise normalization
-        if raw_median_test_time_ms <= 0:
-            components.norm_speed_factor = 0.0
-        elif raw_median_test_time_ms <= 100:
-            components.norm_speed_factor = 1.0
-        else: # raw_median_test_time_ms > 100
-            # Ensure (raw_median_test_time_ms / 100.0) is > 0 for log10
-            # This condition is met since raw_median_test_time_ms > 100
-            try:
-                log_input = raw_median_test_time_ms / 100.0
-                if log_input <= 0: # Should not happen given outer condition, but safeguard
-                    components.norm_speed_factor = 0.0
-                else:
-                    log_val = math.log10(log_input)
-                    # Denominator (1.0 + log_val) can be <= 0 if log_val <= -1
-                    # This happens if log_input <= 0.1, i.e., raw_median_test_time_ms <= 10
-                    # But this case is covered by raw_median_test_time_ms <= 100 yielding 1.0.
-                    # If raw_median_test_time_ms is very large, log_val is large positive, denominator is large positive, S' approaches 0.
-                    denominator = 1.0 + log_val
-                    if denominator <= 1e-9: # Avoid division by zero or very small numbers leading to huge S'
-                        components.norm_speed_factor = 0.0 # Effectively, if time is excessively large
-                    else:
-                        components.norm_speed_factor = 1.0 / denominator
-            except ValueError: # math.log10 domain error, though unlikely with checks
-                 components.norm_speed_factor = 0.0
-        components.norm_speed_factor = max(0.0, min(1.0, components.norm_speed_factor)) # Ensure 0-1
-
-
-        # 2. Calculate G (Weighted Geometric Mean)
-        # G = (M'^(w_M) * E'^(w_E) * A'^(w_A) * B'^(w_B) * S'^(w_S))^(1 / sum(w))
-        
+        # Calculate weighted geometric mean
         factors = [
             components.norm_mutation_score,
             components.norm_emt_gain,
@@ -172,64 +240,24 @@ class BETESCalculator:
             components.norm_behaviour_coverage,
             components.norm_speed_factor
         ]
-        
-        current_weights = [
+        weights = [
             self.weights.w_m,
             self.weights.w_e,
             self.weights.w_a,
             self.weights.w_b,
             self.weights.w_s
         ]
+        components.geometric_mean_g = self._calculate_weighted_geometric_mean(factors, weights)
 
-        sum_of_weights = sum(current_weights)
-        
-        weighted_product = 1.0
-        # Handle cases where a factor is 0, which would make the geometric mean 0
-        # unless its corresponding weight is 0.
-        # If any factor is 0 and its weight is > 0, G is 0.
-        # If a factor is 0 and its weight is 0, it doesn't contribute.
-        can_calculate_product = True
-        for factor_val, weight_val in zip(factors, current_weights):
-            if factor_val == 0.0 and weight_val > 0.0:
-                weighted_product = 0.0
-                can_calculate_product = False
-                break
-            if factor_val > 0.0 or weight_val == 0.0: # only raise to power if base > 0 or weight is 0 (x^0=1)
-                 weighted_product *= (factor_val ** weight_val)
-            elif factor_val < 0.0 and weight_val % 1 != 0: # negative base with fractional exponent
-                # This case should ideally not happen with normalized factors (0-1)
-                # but as a safeguard:
-                weighted_product = 0.0 # Or handle as an error/undefined
-                can_calculate_product = False
-                break
+        # Calculate trust coefficient
+        components.trust_coefficient_t = self._clamp(1.0 - raw_flakiness_rate)
 
+        # Calculate final score
+        components.betes_score = self._clamp(
+            components.geometric_mean_g * components.trust_coefficient_t
+        )
 
-        if not can_calculate_product or weighted_product == 0.0:
-            components.geometric_mean_g = 0.0
-        elif sum_of_weights == 0:
-            # Undefined or could be 1.0 if all factors were 1.0.
-            # For safety, if sum_of_weights is 0, G is typically considered undefined or 0.
-            components.geometric_mean_g = 0.0
-        else:
-            components.geometric_mean_g = weighted_product ** (1.0 / sum_of_weights)
-        
-        # 3. Calculate T (Trust Coefficient)
-        # T = 1 - flakiness_rate
-        components.trust_coefficient_t = max(0.0, min(1.0, 1.0 - raw_flakiness_rate))
-
-        # 4. Calculate final bE-TES score
-        # bE-TES = G * T
-        components.betes_score = components.geometric_mean_g * components.trust_coefficient_t
-        
-        # Ensure final score is also within 0-1
-        components.betes_score = max(0.0, min(1.0, components.betes_score))
-
-        end_time = time.monotonic()
-        components.calculation_time_s = end_time - start_time
-        
-        # Placeholder for insights - can be added later
-        # components.insights = self._generate_insights(components)
-
+        components.calculation_time_s = time.monotonic() - start_time
         return components
 
 
@@ -240,73 +268,16 @@ def classify_betes(
     metric_name: str = "bE-TES"
 ) -> Dict[str, Any]:
     """
-    Evaluates a given score against a defined risk class and its threshold.
+    Evaluates a bE-TES score against a defined risk class and its threshold.
 
     Args:
-        score: The calculated score (0.0 to 1.0).
-        risk_class_name: The name of the risk class to evaluate against (e.g., "standard_saas").
-                         If None, no specific classification is performed, only the score is returned.
-        risk_definitions: A dictionary loaded from risk_classes.yml, where keys are
-                          risk class names and values are their definitions (e.g., {"min_score": 0.75}).
-        metric_name: The name of the metric being classified (e.g., "bE-TES", "OSQI").
+        score: The calculated bE-TES score (0.0 to 1.0).
+        risk_class_name: The name of the risk class to evaluate against.
+        risk_definitions: A dictionary loaded from risk_classes.yml.
+        metric_name: The name of the metric being classified (default: "bE-TES").
 
     Returns:
-        A dictionary containing the score, and if a risk_class_name is provided,
-        it includes the risk class, its threshold, a pass/fail verdict, and a message.
-        Example:
-            {
-                "score": 0.82,
-                "risk_class": "standard_saas",
-                "threshold": 0.75,
-                "verdict": "PASS",
-                "message": "bE-TES score meets the threshold for Standard SaaS."
-            }
-        If risk_class_name is None:
-            {"score": 0.82}
+        A dictionary containing classification results.
     """
-    result: Dict[str, Any] = {"score": round(score, 3)} # Round score for presentation
-
-    if not risk_class_name:
-        return result # No classification requested
-
-    if not risk_definitions:
-        result["error"] = "Risk definitions not provided."
-        result["risk_class"] = risk_class_name
-        result["verdict"] = "UNKNOWN"
-        return result
-
-    risk_class_info = risk_definitions.get(risk_class_name)
-
-    if not risk_class_info:
-        result["error"] = f"Risk class '{risk_class_name}' not found in definitions."
-        result["risk_class"] = risk_class_name
-        result["verdict"] = "UNKNOWN"
-        return result
-
-    min_score_threshold = risk_class_info.get("min_score")
-
-    if min_score_threshold is None:
-        result["error"] = f"No 'min_score' threshold defined for risk class '{risk_class_name}'."
-        result["risk_class"] = risk_class_name
-        result["verdict"] = "UNKNOWN"
-        return result
-    
-    try:
-        min_score_threshold = float(min_score_threshold)
-    except ValueError:
-        result["error"] = f"'min_score' for risk class '{risk_class_name}' is not a valid number."
-        result["risk_class"] = risk_class_name
-        result["verdict"] = "UNKNOWN"
-        return result
-
-    result["risk_class"] = risk_class_name
-    result["threshold"] = round(min_score_threshold, 3)
-
-    if score >= min_score_threshold:
-        result["verdict"] = "PASS"
-        result["message"] = f"{metric_name} score {result['score']:.3f} meets or exceeds the threshold of {result['threshold']:.3f} for risk class '{risk_class_name}'."
-    else:
-        result["verdict"] = "FAIL"
-        result["message"] = f"{metric_name} score {result['score']:.3f} is below the threshold of {result['threshold']:.3f} for risk class '{risk_class_name}'."
-        
-    return result
+    from .classification import classify_metric_score
+    return classify_metric_score(score, risk_class_name, risk_definitions, metric_name)
