@@ -188,6 +188,7 @@ class BayesianQualityCalculator:
         Propagate uncertainty through weighted geometric mean.
         
         Uses log-normal approximation for geometric mean of Beta/Gamma distributions.
+        More accurate than simple propagation for correlated factors.
         
         Args:
             metrics: List of Bayesian metrics

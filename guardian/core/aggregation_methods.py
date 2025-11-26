@@ -63,8 +63,11 @@ class AdvancedAggregator:
         """
         Calculate weighted geometric mean: (∏(x_i^w_i))^(1/∑w_i)
         
+        Uses log-space arithmetic for numerical stability to prevent underflow.
+        Returns 0.0 if any factor with non-zero weight is zero.
+        
         Args:
-            values: List of values to aggregate
+            values: List of values to aggregate (must be positive)
             weights: Optional weights (default: equal weights)
             epsilon: Small value to prevent log(0)
             
