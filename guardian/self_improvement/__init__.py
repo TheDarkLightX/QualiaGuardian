@@ -1,19 +1,30 @@
 """
-Guardian Self-Improvement Package
+Self-Improvement Module for QualiaGuardian
 
-Self-optimization capabilities using E-TES v2.0 for continuous improvement.
+Enables QualiaGuardian to analyze and improve itself recursively.
 """
 
-from .guardian_optimizer import GuardianOptimizer, SelectionMode, run_guardian_self_improvement
-from .gamified_monitor import GamifiedMonitor, AchievementSystem
-from .console_interface import BeautifulConsole, ProgressTracker
+from guardian.self_improvement.self_analyzer import (
+    SelfAnalyzer,
+    SelfAnalysisResult,
+    ImprovementSuggestion,
+    ImprovementPriority,
+)
+from guardian.self_improvement.recursive_improver import (
+    RecursiveImprover,
+    ImprovementAction,
+    ImprovementStatus,
+)
+from guardian.self_improvement.auto_fixer import AutoFixer, FixResult
 
 __all__ = [
-    'GuardianOptimizer',
-    'SelectionMode', 
-    'run_guardian_self_improvement',
-    'GamifiedMonitor',
-    'AchievementSystem',
-    'BeautifulConsole',
-    'ProgressTracker'
+    "SelfAnalyzer",
+    "SelfAnalysisResult",
+    "ImprovementSuggestion",
+    "ImprovementPriority",
+    "RecursiveImprover",
+    "ImprovementAction",
+    "ImprovementStatus",
+    "AutoFixer",
+    "FixResult",
 ]

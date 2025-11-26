@@ -42,6 +42,10 @@ app = typer.Typer(
 gamify_app = typer.Typer(name="gamify", help="Gamification features: XP, badges, quests, leaderboards.")
 app.add_typer(gamify_app)
 
+# Import and add self-improvement commands
+from guardian.cli.self_improve_command import app as self_improve_app
+app.add_typer(self_improve_app)
+
 @gamify_app.command("status", help="Display your current Guardian gamification status (XP, level, badges, active quest).")
 def gamify_status(
     username: Optional[str] = typer.Option(None, "--user", "-u", help="Specify the username for status. Defaults to current user.")
@@ -221,7 +225,7 @@ def gamify_crown(
             # For now, let's pass minimal info.
             current_run_metrics = {"shapley_tests_found": len(top_tests_data)}
             history_manager.record_run(
-                username=username,
+                username=None,  # Use default username from HistoryManager
                 command_name="gamify crown",
                 current_metrics=current_run_metrics,
                 # delta_metrics would require comparing to a previous state, not available here.
@@ -445,18 +449,10 @@ def ec_evolve(
 
 from guardian.cli.analyzer import ProjectAnalyzer
 from guardian.cli.output_formatter import OutputFormatter, FormattingConfig, OutputLevel
+from guardian.cli.quality_scoring_handler import QualityScoringHandler
 
 # Import core calculation and config classes
-from guardian.core.etes import QualityConfig # ETESConfig is now QualityConfig
-from guardian.core.betes import BETESWeights, classify_betes # Added
-from guardian.core.tes import calculate_quality_score, get_etes_grade # calculate_quality_score is the new dispatcher
-
-# Import sensor functions
-from guardian.sensors import mutation as mutation_sensor
-from guardian.sensors import assertion_iq as assertion_iq_sensor
-from guardian.sensors import behaviour_coverage as behaviour_coverage_sensor
-from guardian.sensors import speed as speed_sensor
-from guardian.sensors import flakiness as flakiness_sensor
+from guardian.core.tes import get_etes_grade
 
 # Import legacy analysis functions for backward compatibility
 from guardian.analysis.static import (
@@ -1008,261 +1004,78 @@ def run_analysis(args):
             print("Error: Analysis failed to produce results.", file=sys.stderr)
             return 1
 
-        # --- New Quality Scoring Logic ---
+        # --- Quality Scoring Logic (Refactored) ---
         if args.run_quality:
-            # 1. Create QualityConfig
-            betes_weights_args = {
-                'w_m': args.betes_w_m if args.betes_w_m is not None else 1.0,
-                'w_e': args.betes_w_e if args.betes_w_e is not None else 1.0,
-                'w_a': args.betes_w_a if args.betes_w_a is not None else 1.0,
-                'w_b': args.betes_w_b if args.betes_w_b is not None else 1.0,
-                'w_s': args.betes_w_s if args.betes_w_s is not None else 1.0,
-            }
+            # Use QualityScoringHandler to reduce complexity
+            scoring_handler = QualityScoringHandler(args.project_path)
             
-            # Initialize QualityConfig with defaults first
-            quality_cfg = QualityConfig(
-                mode=args.quality_mode, # This will be updated based on logic below
-                betes_weights=BETESWeights(**betes_weights_args),
-                # betes_v3_1_settings will be updated based on --smooth-sigmoid
-                # osqi_weights will use defaults from QualityConfig definition
-                risk_class=args.risk_class,
-                test_root_path=args.test_root_path or "tests/",
-                coverage_file_path=args.coverage_file_path or "coverage.info",
-                critical_behaviors_manifest_path=args.critical_behaviors_manifest_path,
-                ci_platform=args.ci_platform
-                # E-TES v2 specific fields can be added here if needed from CLI
-            )
-
-            # Update quality_cfg.mode and betes_v3_1_settings based on args
-            current_mode = args.quality_mode
-            if args.quality_mode == "betes_v3":
-                logger.info("Mode 'betes_v3' selected, defaulting to 'betes_v3.1' for calculations.")
-                current_mode = "betes_v3.1" # Internally treat betes_v3 as latest v3.1
+            # Create quality configuration
+            quality_cfg = scoring_handler.create_quality_config(args)
             
-            quality_cfg.mode = current_mode
-
-            if quality_cfg.mode == "betes_v3.1":
-                if args.smooth_sigmoid:
-                    smooth_options = [opt.strip().lower() for opt in args.smooth_sigmoid.split(',')]
-                    if "all" in smooth_options:
-                        quality_cfg.betes_v3_1_settings.smooth_m = True
-                        quality_cfg.betes_v3_1_settings.smooth_e = True
-                    else:
-                        if "m" in smooth_options:
-                            quality_cfg.betes_v3_1_settings.smooth_m = True
-                        if "e" in smooth_options:
-                            quality_cfg.betes_v3_1_settings.smooth_e = True
-                    logger.info(f"bE-TES v3.1 sigmoid settings: smooth_m={quality_cfg.betes_v3_1_settings.smooth_m}, smooth_e={quality_cfg.betes_v3_1_settings.smooth_e}")
+            # Load mutation configuration
+            mutation_config = scoring_handler.load_mutation_config(args.config)
             
-            # Ensure E-TES v2 specific fields are populated if mode is etes_v2
-            if quality_cfg.mode == "etes_v2":
-                 quality_cfg.max_generations=getattr(args, 'max_generations_etes', quality_cfg.max_generations)
-                 quality_cfg.min_mutation_score=getattr(args, 'min_mutation_score_etes', quality_cfg.min_mutation_score)
-                 quality_cfg.min_behavior_coverage=getattr(args, 'min_behavior_coverage_etes', quality_cfg.min_behavior_coverage)
-                 # Add other E-TES v2 fields as needed
-
-            # 2. Sensor Data Collection and Quality Score Calculation
+            # Collect metrics and calculate score based on mode
             raw_metrics_betes_dict = None
             test_suite_data_for_etes_v2 = None
             codebase_data_for_etes_v2 = None
-            previous_score_for_etes_v2 = None # For E-TES v2 evolution gain
+            previous_score_for_etes_v2 = None
             
-            # Collect bE-TES raw metrics if mode is betes_v3.1 or osqi_v1 (as bE-TES is a pillar of OSQI)
-            if quality_cfg.mode == "betes_v3.1" or quality_cfg.mode == "osqi_v1":
-                log_msg_mode = "bE-TES v3.1" if quality_cfg.mode == "betes_v3.1" else "bE-TES v3.1 (for OSQI)"
-                logger.info(f"Collecting raw metrics for {log_msg_mode} using sensors...")
-                
-                # Sensor configurations from CLI args or defaults
-                # These getattr calls allow passing sensor-specific dicts if needed via CLI (not implemented yet),
-                # otherwise, an empty dict is passed, and sensors use their internal defaults/logic.
-                
-                # For testing, provide a default for mutmut_paths_to_mutate if not in a config file
-                # A proper solution would load this from a guardian_config.yml
-                
-                # Default mutation_cfg_dict
-                mutation_cfg_dict = {
-                    "mutmut_paths_to_mutate": ["src"], # Default to 'src' relative to project_path, ensure it's a list
-                    "mutmut_runner_args": "pytest" # Default runner
-                }
-
-                if args.config:
-                    try:
-                        config_path = Path(args.config)
-                        if config_path.is_file():
-                            with open(config_path, 'r') as f:
-                                loaded_config = yaml.safe_load(f)
-                            
-                            if loaded_config and isinstance(loaded_config, dict):
-                                # Try to get sensor configs, then mutation specific
-                                sensor_configs = loaded_config.get("sensors", {})
-                                cli_mutation_config = sensor_configs.get("mutation", {})
-                                
-                                # Override defaults if keys exist in loaded config
-                                if "mutmut_paths_to_mutate" in cli_mutation_config:
-                                    paths = cli_mutation_config["mutmut_paths_to_mutate"]
-                                    # Ensure it's a list, even if a single string is provided in YAML
-                                    mutation_cfg_dict["mutmut_paths_to_mutate"] = [paths] if isinstance(paths, str) else paths
-                                if "mutmut_runner_args" in cli_mutation_config:
-                                    mutation_cfg_dict["mutmut_runner_args"] = cli_mutation_config["mutmut_runner_args"]
-                                # Allow other mutmut settings to be passed through
-                                for key, value in cli_mutation_config.items():
-                                    if key not in ["mutmut_paths_to_mutate", "mutmut_runner_args"]:
-                                        mutation_cfg_dict[key] = value
-                                logger.info(f"Loaded mutation sensor configuration from {args.config}")
-                        else:
-                            logger.warning(f"Config file specified but not found: {args.config}. Using default mutation settings.")
-                    except ImportError:
-                        logger.error("PyYAML is not installed. Please install it to use YAML config files (`pip install PyYAML`). Using default mutation settings.")
-                    except yaml.YAMLError as e:
-                        logger.error(f"Error parsing YAML config file {args.config}: {e}. Using default mutation settings.")
-                    except Exception as e:
-                        logger.error(f"Unexpected error loading config file {args.config}: {e}. Using default mutation settings.")
-                else:
-                    logger.info("No config file specified. Using default mutation settings.")
-                
-                emt_gain_cfg_dict = {}
-                assertion_iq_cfg_dict = {}
-                behaviour_coverage_cfg_dict = {} # getattr(args, 'behaviour_coverage_sensor_config', {})
-                speed_cfg_dict = {} # getattr(args, 'speed_sensor_config', {})
-                flakiness_cfg_dict = {} # getattr(args, 'flakiness_sensor_config', {})
-                
-                project_path_for_sensors = args.project_path
-
-                # Call sensor functions
-                # Pass specific_test_targets (args.tests) to get_mutation_score_data
-                raw_ms_percentage, _, _ = mutation_sensor.get_mutation_score_data(
-                    config=mutation_cfg_dict,
-                    project_path=project_path_for_sensors,
-                    test_targets=args.tests # Pass the specific test targets
+            if quality_cfg.mode in ["betes_v3.1", "osqi_v1"]:
+                # Collect bE-TES raw metrics
+                raw_metrics_betes_dict = scoring_handler.collect_betes_metrics(
+                    quality_cfg,
+                    mutation_config,
+                    test_targets=args.tests
                 )
-                raw_emt_gain = mutation_sensor.get_emt_gain(
-                    current_mutation_score=raw_ms_percentage, project_path=project_path_for_sensors, config=emt_gain_cfg_dict
-                )
-                raw_assertion_iq = assertion_iq_sensor.get_mean_assertion_iq(
-                    test_root_path=quality_cfg.test_root_path, config=assertion_iq_cfg_dict
-                )
-                raw_behaviour_coverage = behaviour_coverage_sensor.get_behaviour_coverage_ratio(
-                    coverage_file_path=quality_cfg.coverage_file_path,
-                    critical_behaviors_manifest_path=quality_cfg.critical_behaviors_manifest_path,
-                    config=behaviour_coverage_cfg_dict
-                )
-                raw_median_test_time_ms = speed_sensor.get_median_test_time_ms(
-                    reportlog_path=args.pytest_reportlog_path,
-                    config=speed_cfg_dict
-                )
-                raw_flakiness_rate = flakiness_sensor.get_suite_flakiness_rate(
-                    project_path=project_path_for_sensors,
-                    ci_platform=quality_cfg.ci_platform,
-                    project_identifier=args.project_ci_identifier or project_path_for_sensors, # Use arg or fallback
-                    config=flakiness_cfg_dict
-                )
-                
-                raw_metrics_betes_dict = {
-                    "raw_mutation_score": raw_ms_percentage,
-                    "raw_emt_gain": raw_emt_gain,
-                    "raw_assertion_iq": raw_assertion_iq,
-                    "raw_behaviour_coverage": raw_behaviour_coverage,
-                    "raw_median_test_time_ms": raw_median_test_time_ms,
-                    "raw_flakiness_rate": raw_flakiness_rate
-                }
-
             elif quality_cfg.mode == "etes_v2":
-                logger.info("Preparing data for E-TES v2.0...")
-                # For E-TES v2, data preparation remains more reliant on what ProjectAnalyzer might provide,
-                # or specific E-TES v2 sensors if they were to be developed.
-                # The current `results` dict from `ProjectAnalyzer` is the primary source.
-                _tes_comps = results.get("tes_components", {})
-                _etes_v2_data_from_main_analysis = results.get("etes_components", {})
-
-
-                test_suite_data_for_etes_v2 = {
-                    'mutation_score': _tes_comps.get('mutation_score', 0.0), # Placeholder, needs actual sourcing
-                    'avg_test_execution_time_ms': _tes_comps.get('avg_test_execution_time_ms', 100.0), # Placeholder
-                    'assertions': _etes_v2_data_from_main_analysis.get('assertions_INTERNAL', []), # Placeholder
-                    'covered_behaviors': _etes_v2_data_from_main_analysis.get('covered_behaviors_INTERNAL', []), # Placeholder
-                    'determinism_score': _etes_v2_data_from_main_analysis.get('determinism_score_INTERNAL', 1.0), # Placeholder
-                    'stability_score': _etes_v2_data_from_main_analysis.get('stability_score_INTERNAL', 1.0), # Placeholder
-                    'readability_score': _etes_v2_data_from_main_analysis.get('readability_score_INTERNAL', 1.0), # Placeholder
-                    'independence_score': _etes_v2_data_from_main_analysis.get('independence_score_INTERNAL', 1.0), # Placeholder
-                }
-                codebase_data_for_etes_v2 = {
-                    'all_behaviors': [], # Placeholder
-                    'behavior_criticality': {}, # Placeholder
-                    'complexity_metrics': results.get("metrics", {}) # From ProjectAnalyzer
-                }
-                # previous_score_for_etes_v2 would be sourced from history if E-TES v2 evolution is active
+                # Prepare E-TES v2 data
+                test_suite_data_for_etes_v2, codebase_data_for_etes_v2 = (
+                    scoring_handler.prepare_etes_v2_data(results)
+                )
             
-            # Call the unified quality score calculator
-            quality_score, quality_components_obj = calculate_quality_score(
-                config=quality_cfg,
-                raw_metrics_betes=raw_metrics_betes_dict,
-                test_suite_data=test_suite_data_for_etes_v2,
-                codebase_data=codebase_data_for_etes_v2,
-                previous_score=previous_score_for_etes_v2,
-                project_path=args.project_path if quality_cfg.mode == "osqi_v1" else None,
+            # Calculate quality score
+            quality_score, quality_components_obj = scoring_handler.calculate_quality_score(
+                quality_cfg,
+                raw_metrics_betes_dict,
+                test_suite_data_for_etes_v2,
+                codebase_data_for_etes_v2,
+                previous_score_for_etes_v2,
                 project_language=args.project_language if quality_cfg.mode == "osqi_v1" else "python"
             )
             
-            # Update the main results TES components with the actual mutation score if calculated
+            # Update results with mutation score if available
             if raw_metrics_betes_dict and "raw_mutation_score" in raw_metrics_betes_dict:
-                if "tes_components" not in results: # Should exist from ProjectAnalyzer
+                if "tes_components" not in results:
                     results["tes_components"] = {}
-                results["tes_components"]["mutation_score"] = raw_metrics_betes_dict["raw_mutation_score"]
-                # Potentially re-calculate legacy TES score if it relied on this directly,
-                # but for now, just ensure the component is updated for display.
-                # The main quality score is now `quality_score` from `calculate_quality_score`.
-
-            # Store results; structure might vary slightly if quality_components_obj is OSQIResult
-            # For OSQIResult, quality_components_obj.osqi_score is the main score.
-            # For BETESComponentsV3, quality_components_obj.betes_score is the main score.
-            # The `quality_score` variable already holds the primary score from the dispatcher.
+                results["tes_components"]["mutation_score"] = (
+                    raw_metrics_betes_dict["raw_mutation_score"]
+                )
             
+            # Store quality analysis results
             results["quality_analysis"] = {
                 "mode": quality_cfg.mode,
                 "score": round(quality_score, 3),
-                "grade": get_etes_grade(quality_score), # Generic grading for 0-1 scores
-                 # Convert dataclass to dict, handling potential OSQIResult structure
-                "components": quality_components_obj.__dict__ if hasattr(quality_components_obj, '__dict__') else str(quality_components_obj)
+                "grade": get_etes_grade(quality_score),
+                "components": (
+                    quality_components_obj.__dict__
+                    if hasattr(quality_components_obj, '__dict__')
+                    else str(quality_components_obj)
+                )
             }
             
-            # Classification logic for bE-TES v3.1 and OSQI v1.0
-            if quality_cfg.mode in ["betes_v3.1", "osqi_v1"] and quality_cfg.risk_class:
-                risk_definitions = {}
-                classification_metric_name = "OSQI" if quality_cfg.mode == "osqi_v1" else "bE-TES" # Default to bE-TES
-                
-                try:
-                    # Path to risk_classes.yml
-                    script_dir = os.path.dirname(os.path.abspath(__file__))
-                    config_dir = os.path.join(script_dir, "..", "config") # guardian_ai_tool/config/
-                    risk_file_path = os.path.join(config_dir, "risk_classes.yml")
-                    
-                    if os.path.exists(risk_file_path):
-                        import yaml # Requires PyYAML
-                        with open(risk_file_path, 'r') as f:
-                            risk_definitions = yaml.safe_load(f)
-                    else:
-                        print(f"Warning: risk_classes.yml not found at {risk_file_path}", file=sys.stderr)
-                        results["quality_analysis"]["classification_error"] = f"risk_classes.yml not found at {risk_file_path}"
-                except ImportError:
-                    print("Warning: PyYAML is not installed. Install it with `pip install PyYAML` to use risk classification.", file=sys.stderr)
-                    results["quality_analysis"]["classification_error"] = "PyYAML not installed."
-                except Exception as e:
-                    print(f"Warning: Could not load or parse risk_classes.yml: {e}", file=sys.stderr)
-                    results["quality_analysis"]["classification_error"] = f"Error loading risk_classes.yml: {e}"
-
-                if risk_definitions:
-                    # Use classify_betes for both, as it's now generic with metric_name
-                    classification = classify_betes(
-                        score=quality_score,
-                        risk_class_name=quality_cfg.risk_class,
-                        risk_definitions=risk_definitions,
-                        metric_name=classification_metric_name
-                    )
-                    results["quality_analysis"]["classification"] = classification
-                    if args.strict and classification.get("verdict") == "FAIL":
-                         results["has_critical_issues"] = True
-                elif not results["quality_analysis"].get("classification_error"): # if no error yet
-                    results["quality_analysis"]["classification_error"] = "Risk definitions were not loaded for classification."
+            # Apply risk classification if configured
+            scoring_handler.apply_risk_classification(
+                quality_cfg,
+                quality_score,
+                results
+            )
+            
+            # Check if classification verdict requires strict mode failure
+            if args.strict:
+                classification = results.get("quality_analysis", {}).get("classification", {})
+                if classification.get("verdict") == "FAIL":
+                    results["has_critical_issues"] = True
             
 
         # Format and output results cleanly
