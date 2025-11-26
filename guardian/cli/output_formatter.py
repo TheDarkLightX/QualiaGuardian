@@ -17,21 +17,32 @@ from rich.panel import Panel
 from rich.style import Style
 from rich.progress_bar import ProgressBar as RichProgressBar # For simple progress bars
 from rich.theme import Theme
+from rich.columns import Columns
+from rich.align import Align
+from rich.layout import Layout
+from rich.progress import Progress, SpinnerColumn, BarColumn, TextColumn, TimeElapsedColumn
+from rich.markdown import Markdown
+from rich.box import ROUNDED, DOUBLE_EDGE, HEAVY, SQUARE
 
-# Define a custom theme for Guardian (optional, but good for consistency)
+# Enhanced custom theme for Guardian with improved color palette
 guardian_theme = Theme({
     "info": "dim cyan",
-    "warning": "yellow",
+    "warning": "bold yellow",
     "error": "bold red",
-    "success": "green",
-    "header": "bold cyan on black", # Example style
-    "section_title": "bold blue",
-    "table_header": "bold blue",
-    "score_good": "green",
-    "score_medium": "yellow",
-    "score_bad": "red",
-    "progress.bar": "cyan",
+    "success": "bold green",
+    "header": "bold bright_cyan on rgb(15,15,30)", # Dark blue background
+    "section_title": "bold bright_blue",
+    "table_header": "bold bright_cyan",
+    "score_good": "bold green",
+    "score_medium": "bold yellow",
+    "score_bad": "bold red",
+    "progress.bar": "bright_cyan",
     "progress.percentage": "bold",
+    "accent": "bright_magenta",
+    "highlight": "bold bright_white",
+    "dim": "dim white",
+    "metric_label": "cyan",
+    "metric_value": "bright_white",
 })
 
 
@@ -102,18 +113,43 @@ class OutputFormatter:
         
         renderables: List[Union[Table, Panel, Text, str]] = []
 
-        # Header
-        renderables.append(Panel(Text("Guardian Analysis Report", style="header", justify="center"), expand=False))
+        # Enhanced Header with gradient effect
+        header_text = Text()
+        header_text.append("🛡️ ", style="bold bright_cyan")
+        header_text.append("Guardian", style="bold bright_white")
+        header_text.append(" Analysis Report", style="bold cyan")
+        header_panel = Panel(
+            Align.center(header_text),
+            box=DOUBLE_EDGE,
+            border_style="bright_cyan",
+            padding=(1, 2),
+            expand=False
+        )
+        renderables.append(header_panel)
         renderables.append("") # For spacing
         
-        # Basic info
-        project_info_text = Text.assemble(
-            ("Project Path: ", "info"), (str(results.get('project_path', 'N/A')), "")
-        )
-        status_text = self._get_rich_status_text(results.get('status', 'unknown'))
+        # Enhanced Project Info with better layout
+        project_path = str(results.get('project_path', 'N/A'))
+        status = results.get('status', 'unknown')
         
-        project_info_panel_content = Text("\n").join([project_info_text, status_text])
-        renderables.append(Panel(project_info_panel_content, title="[section_title]Project Information[/]", expand=False))
+        project_info_content = Group(
+            Text.assemble(
+                ("📁 Project: ", "metric_label"), 
+                (project_path, "metric_value")
+            ),
+            Text(""),  # Spacing
+            self._get_rich_status_text(status)
+        )
+        
+        project_info_panel = Panel(
+            project_info_content,
+            title="[section_title]📊 Project Information[/section_title]",
+            box=ROUNDED,
+            border_style="cyan",
+            padding=(1, 2),
+            expand=False
+        )
+        renderables.append(project_info_panel)
         renderables.append("")
 
         # TES Scores
@@ -185,112 +221,210 @@ class OutputFormatter:
         return Text(f"📊 {title}", style="section_title")
 
     def _format_tes_scores_rich(self, results: Dict[str, Any]) -> List[Union[Text, Table, str]]:
-        """Format TES score section using Rich."""
+        """Format TES score section using Rich with enhanced visuals."""
         render_list: List[Union[Text, Table, str]] = []
-        render_list.append(self._format_section_title_rich("Test Effectiveness Score (TES)"))
         
         tes_score = results.get('tes_score', 0.0)
         tes_grade = results.get('tes_grade', 'F')
-        
         score_style = self._get_rich_score_style(tes_score)
         
-        score_text = Text.assemble(
-            ("  Score: ", ""), (f"{tes_score:.3f}", score_style),
-            (" (Grade: ", ""), (tes_grade, score_style), (")", "")
+        # Create a visual score card
+        score_percentage = int(tes_score * 100)
+        score_bar = self._create_score_bar(tes_score)
+        
+        score_content = Group(
+            Text.assemble(
+                ("Score: ", "metric_label"),
+                (f"{tes_score:.3f}", score_style),
+                ("  ", ""),
+                (f"({tes_grade})", score_style)
+            ),
+            Text(""),
+            score_bar,
+            Text(f"  {score_percentage}%", style="dim")
         )
-        render_list.append(score_text)
+        
+        score_panel = Panel(
+            score_content,
+            title="[section_title]🎯 Test Effectiveness Score (TES)[/section_title]",
+            box=ROUNDED,
+            border_style="bright_blue",
+            padding=(1, 2),
+            expand=False
+        )
+        render_list.append(score_panel)
         
         components = results.get('tes_components', {})
         if components:
-            table = Table(show_header=False, box=None, padding=(0,1,0,2)) # No box, more padding
-            table.add_column()
-            table.add_column()
-            table.add_row("  Components:", "")
-            table.add_row("    • Mutation Score:", f"{components.get('mutation_score', 0):.3f}")
-            table.add_row("    • Behavior Coverage:", f"{components.get('behavior_coverage_calculated', 0):.3f}")
-            table.add_row("    • Speed Factor:", f"{components.get('speed_factor_calculated', 0):.3f}")
-            render_list.append(table)
+            comp_table = Table(show_header=True, box=ROUNDED, header_style="table_header", padding=(0, 2))
+            comp_table.add_column("Component", style="cyan", width=25)
+            comp_table.add_column("Value", justify="right", style="bright_white", width=12)
+            comp_table.add_column("Status", justify="center", width=15)
+            
+            for comp_name, comp_key, comp_value in [
+                ("Mutation Score", "mutation_score", components.get('mutation_score', 0)),
+                ("Behavior Coverage", "behavior_coverage_calculated", components.get('behavior_coverage_calculated', 0)),
+                ("Speed Factor", "speed_factor_calculated", components.get('speed_factor_calculated', 0))
+            ]:
+                comp_status = self._get_component_status_icon(comp_value)
+                comp_table.add_row(
+                    f"  • {comp_name}",
+                    f"{comp_value:.3f}",
+                    comp_status
+                )
+            render_list.append(comp_table)
         
         render_list.append("")
         return render_list
+    
+    def _create_score_bar(self, score: float, width: int = 40) -> Text:
+        """Create a visual progress bar for scores."""
+        filled = int(width * score)
+        empty = width - filled
+        
+        bar_text = Text()
+        bar_text.append("█" * filled, style=self._get_rich_score_style(score))
+        bar_text.append("░" * empty, style="dim")
+        return bar_text
+    
+    def _get_component_status_icon(self, value: float) -> Text:
+        """Get status icon for component values."""
+        if value >= 0.8:
+            return Text("✅ Excellent", style="score_good")
+        elif value >= 0.6:
+            return Text("⚠️  Good", style="score_medium")
+        elif value >= 0.4:
+            return Text("⚡ Fair", style="yellow")
+        else:
+            return Text("❌ Needs Work", style="score_bad")
 
     def _format_etes_scores_rich(self, results: Dict[str, Any]) -> List[Union[Text, Table, str]]:
-        """Format E-TES v2.0 score section using Rich."""
+        """Format E-TES v2.0 score section using Rich with enhanced visuals."""
         render_list: List[Union[Text, Table, str]] = []
-        render_list.append(self._format_section_title_rich("E-TES v2.0 (Evolutionary Test Effectiveness)"))
         
         etes_score = results.get('etes_score', 0.0)
         etes_grade = results.get('etes_grade', 'F')
         score_style = self._get_rich_score_style(etes_score)
+        score_percentage = int(etes_score * 100)
+        score_bar = self._create_score_bar(etes_score)
 
-        score_text = Text.assemble(
-            ("  Score: ", ""), (f"{etes_score:.3f}", score_style),
-            (" (Grade: ", ""), (etes_grade, score_style), (")", "")
+        score_content = Group(
+            Text.assemble(
+                ("Score: ", "metric_label"),
+                (f"{etes_score:.3f}", score_style),
+                ("  ", ""),
+                (f"({etes_grade})", score_style)
+            ),
+            Text(""),
+            score_bar,
+            Text(f"  {score_percentage}%", style="dim")
         )
-        render_list.append(score_text)
+        
+        score_panel = Panel(
+            score_content,
+            title="[section_title]🧬 E-TES v2.0 (Evolutionary Test Effectiveness)[/section_title]",
+            box=ROUNDED,
+            border_style="bright_magenta",
+            padding=(1, 2),
+            expand=False
+        )
+        render_list.append(score_panel)
         
         etes_comp = results.get('etes_components', {})
         if etes_comp:
-            table = Table(show_header=False, box=None, padding=(0,1,0,2))
-            table.add_column()
-            table.add_column()
-            table.add_row("  Components:", "")
+            comp_table = Table(show_header=True, box=ROUNDED, header_style="table_header", padding=(0, 2))
+            comp_table.add_column("Component", style="cyan", width=25)
+            comp_table.add_column("Value", justify="right", style="bright_white", width=12)
+            comp_table.add_column("Status", justify="center", width=15)
+            
             for key, val_name in [
-                ("Mutation Score", "mutation_score"), ("Evolution Gain", "evolution_gain"),
-                ("Assertion IQ", "assertion_iq"), ("Behavior Coverage", "behavior_coverage"),
-                ("Speed Factor", "speed_factor"), ("Quality Factor", "quality_factor")
+                ("Mutation Score", "mutation_score"), 
+                ("Evolution Gain", "evolution_gain"),
+                ("Assertion IQ", "assertion_iq"), 
+                ("Behavior Coverage", "behavior_coverage"),
+                ("Speed Factor", "speed_factor"), 
+                ("Quality Factor", "quality_factor")
             ]:
-                table.add_row(f"    • {key}:", f"{etes_comp.get(val_name, 0):.3f}")
-            render_list.append(table)
+                comp_value = etes_comp.get(val_name, 0)
+                comp_status = self._get_component_status_icon(comp_value)
+                comp_table.add_row(
+                    f"  • {key}",
+                    f"{comp_value:.3f}",
+                    comp_status
+                )
+            render_list.append(comp_table)
             
             insights = etes_comp.get('insights', [])
             if insights:
-                render_list.append(Text("  Insights:", style="info"))
-                for insight in insights[:5]:
-                    render_list.append(Text(f"    💡 {insight}"))
+                insights_panel = Panel(
+                    Group(*[Text(f"💡 {insight}", style="info") for insight in insights[:5]]),
+                    title="[section_title]💡 Insights[/section_title]",
+                    box=ROUNDED,
+                    border_style="cyan",
+                    padding=(1, 2),
+                    expand=False
+                )
+                render_list.append(insights_panel)
         
         comparison = results.get('etes_comparison', {})
         if comparison:
             improvement = comparison.get('improvement', 0)
             comp_style = "score_good" if improvement > 0 else "score_medium" if improvement < 0 else ""
             sign = "+" if improvement > 0 else ""
-            render_list.append(Text.assemble(
-                ("  Improvement: ", ""), (f"{sign}{improvement:.3f}", comp_style), (" over legacy TES", "")
-            ))
+            improvement_text = Text.assemble(
+                ("Improvement: ", "metric_label"),
+                (f"{sign}{improvement:.3f}", comp_style),
+                (" over legacy TES", "dim")
+            )
+            render_list.append(improvement_text)
         
         render_list.append("")
         return render_list
 
     def _format_metrics_rich(self, metrics: Dict[str, Any]) -> List[Union[Text, Table, str]]:
-        """Format metrics section using Rich Table."""
+        """Format metrics section using Rich Table with enhanced visuals."""
         render_list: List[Union[Text, Table, str]] = []
-        render_list.append(self._format_section_title_rich("Code Quality Metrics"))
 
         if not metrics:
-            render_list.append(Text("  No metrics available", style="info"))
+            no_metrics_panel = Panel(
+                Text("No metrics available", style="info", justify="center"),
+                box=ROUNDED,
+                border_style="dim",
+                expand=False
+            )
+            render_list.append(no_metrics_panel)
             render_list.append("")
             return render_list
 
-        table = Table(title=None, show_header=True, header_style="table_header", box=None)
-        table.add_column("Metric", style="dim")
-        table.add_column("Value", justify="right")
-        table.add_column("Status", justify="center")
+        table = Table(
+            title="[section_title]📈 Code Quality Metrics[/section_title]",
+            show_header=True,
+            header_style="table_header",
+            box=ROUNDED,
+            border_style="cyan",
+            padding=(0, 2),
+            show_lines=False
+        )
+        table.add_column("Metric", style="metric_label", width=28)
+        table.add_column("Value", justify="right", style="metric_value", width=18)
+        table.add_column("Status", justify="center", width=20)
 
         metric_map = {
-            'total_lines_of_code_python': ("Lines of Code", self._get_loc_status_rich),
-            'python_files_analyzed': ("Python Files", lambda x: Text("📄")),
-            'average_cyclomatic_complexity': ("Avg Complexity", self._get_complexity_status_rich, ".2f"),
-            'long_functions_count': ("Long Functions", self._get_function_status_rich),
-            'large_classes_count': ("Large Classes", self._get_class_status_rich),
-            'unused_imports_count': ("Unused Imports", self._get_unused_imports_status_rich),
-            'circular_dependencies_count': ("Circular Dependencies", self._get_dependencies_status_rich)
+            'total_lines_of_code_python': ("📏 Lines of Code", self._get_loc_status_rich),
+            'python_files_analyzed': ("📄 Python Files", lambda x: Text(f"📄 {x}", style="info")),
+            'average_cyclomatic_complexity': ("🧩 Avg Complexity", self._get_complexity_status_rich, ".2f"),
+            'long_functions_count': ("📏 Long Functions", self._get_function_status_rich),
+            'large_classes_count': ("📦 Large Classes", self._get_class_status_rich),
+            'unused_imports_count': ("🗑️  Unused Imports", self._get_unused_imports_status_rich),
+            'circular_dependencies_count': ("🔄 Circular Dependencies", self._get_dependencies_status_rich)
         }
 
         for key, (label, status_func, *fmt) in metric_map.items():
             if key in metrics:
                 value = metrics[key]
                 value_str = f"{value:{fmt[0]}}" if fmt else str(value)
-                if key == 'total_lines_of_code_python': value_str = f"{value:,}"
+                if key == 'total_lines_of_code_python': 
+                    value_str = f"{value:,}"
                 status_renderable = status_func(value)
                 table.add_row(label, value_str, status_renderable)
         
@@ -301,44 +435,113 @@ class OutputFormatter:
     
     def _format_test_execution_rich(self, test_summary: Dict[str, Any]) -> List[Union[Text, str]]:
         render_list: List[Union[Text, str]] = []
-        render_list.append(self._format_section_title_rich("Test Execution"))
         
         if not test_summary:
-            render_list.append(Text("  No test execution data available", style="info"))
+            no_data_panel = Panel(
+                Text("No test execution data available", style="info", justify="center"),
+                box=ROUNDED,
+                border_style="dim",
+                expand=False
+            )
+            render_list.append(no_data_panel)
             render_list.append("")
             return render_list
         
         success = test_summary.get('pytest_ran_successfully', False)
         status_style = "success" if success else "error"
-        status_icon = "✓" if success else "✗"
+        status_icon = "✅" if success else "❌"
+        status_text = "PASSED" if success else "FAILED"
         
-        render_list.append(Text.assemble(("  Status: ", ""), (f"{status_icon} {('PASSED' if success else 'FAILED')}", status_style)))
-        render_list.append(Text(f"  Exit Code: {test_summary.get('pytest_exit_code', 'N/A')}"))
-        
+        exit_code = test_summary.get('pytest_exit_code', 'N/A')
         duration = test_summary.get('pytest_duration_seconds', 0)
-        if duration:
-            render_list.append(Text(f"  Duration: {duration:.2f}s"))
         
+        test_content = Group(
+            Text.assemble(
+                ("Status: ", "metric_label"),
+                (f"{status_icon} {status_text}", status_style)
+            ),
+            Text(""),
+            Text.assemble(
+                ("Exit Code: ", "metric_label"),
+                (str(exit_code), "bright_white")
+            ),
+        )
+        
+        if duration:
+            test_content.renderables.append(Text(""))
+            test_content.renderables.append(
+                Text.assemble(
+                    ("Duration: ", "metric_label"),
+                    (f"{duration:.2f}s", "bright_white")
+                )
+            )
+        
+        test_panel = Panel(
+            test_content,
+            title="[section_title]🧪 Test Execution[/section_title]",
+            box=ROUNDED,
+            border_style="bright_green" if success else "red",
+            padding=(1, 2),
+            expand=False
+        )
+        render_list.append(test_panel)
         render_list.append("")
         return render_list
     
     def _format_security_analysis_rich(self, results: Dict[str, Any]) -> List[Union[Text, str]]:
         render_list: List[Union[Text, str]] = []
-        render_list.append(self._format_section_title_rich("Security Analysis"))
         
         security = results.get('security_analysis', {})
         if not security:
-            render_list.append(Text("  No security analysis data available", style="info"))
+            no_data_panel = Panel(
+                Text("No security analysis data available", style="info", justify="center"),
+                box=ROUNDED,
+                border_style="dim",
+                expand=False
+            )
+            render_list.append(no_data_panel)
             render_list.append("")
             return render_list
         
         vuln_count = security.get('dependency_vulnerabilities_count', 0)
+        eval_count = security.get('eval_usage_count', 0)
+        secrets_count = security.get('hardcoded_secrets_count', 0)
+        
         vuln_style = "error" if vuln_count > 0 else "success"
-        render_list.append(Text.assemble(("  Vulnerabilities: ", ""), (str(vuln_count), vuln_style)))
+        eval_style = "warning" if eval_count > 0 else "success"
+        secrets_style = "error" if secrets_count > 0 else "success"
         
-        render_list.append(Text(f"  Eval Usage: {security.get('eval_usage_count', 0)}"))
-        render_list.append(Text(f"  Hardcoded Secrets: {security.get('hardcoded_secrets_count', 0)}"))
+        security_content = Group(
+            Text.assemble(
+                ("🔒 Vulnerabilities: ", "metric_label"),
+                (str(vuln_count), vuln_style),
+                (" " + ("⚠️" if vuln_count > 0 else "✅"), "")
+            ),
+            Text(""),
+            Text.assemble(
+                ("⚠️  Eval Usage: ", "metric_label"),
+                (str(eval_count), eval_style),
+                (" " + ("⚠️" if eval_count > 0 else "✅"), "")
+            ),
+            Text(""),
+            Text.assemble(
+                ("🔐 Hardcoded Secrets: ", "metric_label"),
+                (str(secrets_count), secrets_style),
+                (" " + ("❌" if secrets_count > 0 else "✅"), "")
+            )
+        )
         
+        overall_status = "error" if (vuln_count > 0 or secrets_count > 0) else "warning" if eval_count > 0 else "success"
+        
+        security_panel = Panel(
+            security_content,
+            title="[section_title]🔒 Security Analysis[/section_title]",
+            box=ROUNDED,
+            border_style=overall_status,
+            padding=(1, 2),
+            expand=False
+        )
+        render_list.append(security_panel)
         render_list.append("")
         return render_list
     
@@ -405,27 +608,111 @@ class OutputFormatter:
         elif score >= 0.6: return "score_medium"
         return "score_bad"
 
-    def format_error(self, error_message: str) -> None: # Changed to print
-        """Format and print error message using Rich."""
-        self.console.print(Text(f"❌ Error: {error_message}", style="error"))
+    def format_error(self, error_message: str, details: Optional[str] = None, suggestion: Optional[str] = None) -> None:
+        """Format and print enhanced error message with actionable guidance."""
+        error_panel_content = Group(
+            Text.assemble(("❌ ", "bold red"), ("Error: ", "bold"), (error_message, "")),
+        )
+        
+        if details:
+            error_panel_content.renderables.append(Text(""))
+            error_panel_content.renderables.append(Text.assemble(("Details: ", "dim"), (details, "dim white")))
+        
+        if suggestion:
+            error_panel_content.renderables.append(Text(""))
+            error_panel_content.renderables.append(
+                Text.assemble(("💡 Suggestion: ", "bold yellow"), (suggestion, "yellow"))
+            )
+        
+        error_panel = Panel(
+            error_panel_content,
+            title="[bold red]Error[/bold red]",
+            border_style="red",
+            box=ROUNDED,
+            padding=(1, 2)
+        )
+        self.console.print(error_panel)
     
-    def format_warning(self, warning_message: str) -> None: # Changed to print
-        """Format and print warning message using Rich."""
-        self.console.print(Text(f"⚠️ Warning: {warning_message}", style="warning"))
+    def format_warning(self, warning_message: str, suggestion: Optional[str] = None) -> None:
+        """Format and print enhanced warning message with guidance."""
+        warning_content = Group(
+            Text.assemble(("⚠️  ", "bold yellow"), ("Warning: ", "bold"), (warning_message, "")),
+        )
+        
+        if suggestion:
+            warning_content.renderables.append(Text(""))
+            warning_content.renderables.append(
+                Text.assemble(("💡 Tip: ", "bold cyan"), (suggestion, "cyan"))
+            )
+        
+        warning_panel = Panel(
+            warning_content,
+            title="[bold yellow]Warning[/bold yellow]",
+            border_style="yellow",
+            box=ROUNDED,
+            padding=(1, 2)
+        )
+        self.console.print(warning_panel)
     
-    def format_success(self, success_message: str) -> None: # Changed to print
-        """Format and print success message using Rich."""
-        self.console.print(Text(f"✅ {success_message}", style="success"))
+    def format_success(self, success_message: str, details: Optional[str] = None) -> None:
+        """Format and print enhanced success message."""
+        success_content = Group(
+            Text.assemble(("✅ ", "bold green"), (success_message, "")),
+        )
+        
+        if details:
+            success_content.renderables.append(Text(""))
+            success_content.renderables.append(Text(details, style="dim"))
+        
+        success_panel = Panel(
+            success_content,
+            title="[bold green]Success[/bold green]",
+            border_style="green",
+            box=ROUNDED,
+            padding=(1, 2)
+        )
+        self.console.print(success_panel)
 
     def format_progress_bar(self, current: int, total: int, description: str = "") -> None: # Changed to print
-        """Format and print a simple progress bar using Rich."""
+        """Format and print an enhanced progress bar using Rich."""
         if not self._progress_bar_enabled or self.level == OutputLevel.QUIET:
             return
-        # For a simple, one-line progress bar that updates in place,
-        # direct use of rich.progress.Progress with console.status or console.live is better.
-        # This is a simplified version.
-        bar = RichProgressBar(total=total, completed=current, width=40)
-        self.console.print(Text(description + " ") + bar + Text(f" {current}/{total} ({current/total*100:.1f}%)"))
+        
+        percentage = (current / total * 100) if total > 0 else 0
+        bar_width = 50
+        
+        # Create visual progress bar
+        filled = int(bar_width * (current / total)) if total > 0 else 0
+        empty = bar_width - filled
+        
+        bar_text = Text()
+        bar_text.append("█" * filled, style="bright_green")
+        bar_text.append("░" * empty, style="dim")
+        
+        progress_text = Text.assemble(
+            (description, "bold cyan") if description else "",
+            (" " if description else "", ""),
+            bar_text,
+            (f" {current}/{total} ({percentage:.1f}%)", "dim")
+        )
+        
+        self.console.print(progress_text)
+    
+    def create_progress_context(self, description: str = "Processing..."):
+        """Create a Rich Progress context manager for long-running operations."""
+        from rich.progress import Progress, SpinnerColumn, BarColumn, TextColumn, TimeElapsedColumn, TimeRemainingColumn
+        
+        progress = Progress(
+            SpinnerColumn(),
+            TextColumn("[progress.description]{task.description}"),
+            BarColumn(),
+            TextColumn("[progress.percentage]{task.percentage:>3.0f}%"),
+            TimeElapsedColumn(),
+            TimeRemainingColumn(),
+            console=self.console,
+            transient=False
+        )
+        return progress
 
 
     def format_table(self, headers: List[str], rows: List[List[Any]], title: Optional[str] = None) -> Table: # Returns Rich Table
@@ -439,15 +726,28 @@ class OutputFormatter:
             table.add_row(*(str(item) for item in row))
         return table
 
-    def format_clean_error(self, error_message: str, show_details: bool = False) -> None: # Changed to print
-        """Format and print clean error message using Rich."""
+    def format_clean_error(self, error_message: str, show_details: bool = False, 
+                          suggestion: Optional[str] = None) -> None:
+        """Format and print clean error message with actionable guidance."""
         if self.level == OutputLevel.DEBUG and show_details:
-            self.format_error(error_message) # This will print
+            self.format_error(error_message, details=error_message, suggestion=suggestion)
             return
 
         clean_message = error_message.split('\n')[0]
         clean_message = clean_message.replace('Traceback', '').replace('Exception:', '').strip()
-        self.console.print(Text(f"❌ {clean_message}", style="error"))
+        
+        # Try to extract actionable suggestions from common error patterns
+        if not suggestion:
+            if "FileNotFoundError" in error_message or "No such file" in error_message:
+                suggestion = "Check that the file path is correct and the file exists."
+            elif "PermissionError" in error_message or "Permission denied" in error_message:
+                suggestion = "Check file permissions. You may need to run with elevated privileges."
+            elif "ImportError" in error_message or "ModuleNotFoundError" in error_message:
+                suggestion = "Ensure all required dependencies are installed: pip install -r requirements.txt"
+            elif "SyntaxError" in error_message:
+                suggestion = "Check the syntax of your code. Review the line mentioned in the error."
+        
+        self.format_error(clean_message, suggestion=suggestion)
 
     # Status emoji/text functions for Rich table cells
     def _get_loc_status_rich(self, loc: int) -> Text:
@@ -528,8 +828,7 @@ class OutputFormatter:
 
     def display_gamify_hud(self, gamify_data: Optional[Dict[str, Any]] = None) -> None:
         """
-        Displays a gamified Heads-Up Display (HUD) with current stats.
-        For M1 of CLI upgrade, uses placeholder data.
+        Displays an enhanced gamified Heads-Up Display (HUD) with beautiful visuals.
         """
         if self.level == OutputLevel.QUIET:
             return
@@ -546,35 +845,77 @@ class OutputFormatter:
             "badges_earned": 0,
         }
 
-        level_str = str(data.get("level", 1))
-        xp_str = str(data.get("xp", 0))
-        xp_next_str = str(data.get("xp_to_next_level", 1000))
-        streak_str = str(data.get("streak_days", 0))
+        level = data.get("level", 1)
+        xp = data.get("xp", 0)
+        xp_next = data.get("xp_to_next_level", 1000)
+        streak_days = data.get("streak_days", 0)
         quest_name = str(data.get("active_quest_name", "N/A"))
         quest_prog = int(data.get("active_quest_progress", 0))
         quest_target = int(data.get("active_quest_target", 1))
+        badges = data.get("badges_earned", 0)
         
-        xp_bar_length = 10
-        xp_filled = int(xp_bar_length * (data.get("xp",0) / data.get("xp_to_next_level",1000))) if data.get("xp_to_next_level",1000) > 0 else 0
-        xp_bar = '█' * xp_filled + '─' * (xp_bar_length - xp_filled)
-
-        quest_bar_length = 10
-        quest_filled = int(quest_bar_length * (quest_prog / quest_target)) if quest_target > 0 else 0
-        quest_bar = '█' * quest_filled + '─' * (quest_bar_length - quest_filled)
-
-
-        hud_text = Text.assemble(
-            ("LVL: ", "bold white"), (level_str, "bold yellow"),
-            (" | XP: ", "bold white"), (f"{xp_str}/{xp_next_str}", "bold green"), (f" [{xp_bar}]", "dim white"),
-            (" | 🔥 Streak: ", "bold white"), (streak_str, "bold orange3"), (" days", "orange3"),
-            ("\nQuest: ", "bold white"), (f"{quest_name}", "italic cyan"),
-            (f" [{quest_bar}] {quest_prog}/{quest_target}", "dim white")
+        # Calculate XP progress
+        xp_progress = (xp / xp_next) if xp_next > 0 else 0.0
+        quest_progress = (quest_prog / quest_target) if quest_target > 0 else 0.0
+        
+        # Create enhanced visual bars
+        xp_bar = self._create_progress_bar(xp_progress, 30, "bright_green")
+        quest_bar = self._create_progress_bar(quest_progress, 30, "bright_cyan")
+        
+        # Build HUD content with better layout
+        hud_content = Group(
+            # Level and XP section
+            Text.assemble(
+                ("⚡ Level ", "bold bright_white"),
+                (f"{level}", "bold bright_yellow"),
+                ("  ", ""),
+                ("💎 XP: ", "bold bright_white"),
+                (f"{xp:,}", "bold bright_green"),
+                (" / ", "dim"),
+                (f"{xp_next:,}", "dim bright_white")
+            ),
+            xp_bar,
+            Text(""),
+            # Streak and Badges
+            Text.assemble(
+                ("🔥 Streak: ", "bold bright_white"),
+                (f"{streak_days}", "bold bright_red"),
+                (" days  ", ""),
+                ("🏆 Badges: ", "bold bright_white"),
+                (f"{badges}", "bold bright_yellow")
+            ),
+            Text(""),
+            # Quest section
+            Text.assemble(
+                ("📜 Quest: ", "bold bright_white"),
+                (quest_name, "italic bright_cyan")
+            ),
+            quest_bar,
+            Text.assemble(
+                ("  ", ""),
+                (f"{quest_prog}", "dim bright_white"),
+                (" / ", "dim"),
+                (f"{quest_target}", "dim bright_white"),
+                (f" ({int(quest_progress * 100)}%)", "dim")
+            )
         )
         
         panel = Panel(
-            hud_text,
-            title="[bold magenta]🛡️ Guardian HQ[/bold magenta]",
-            border_style="info", # Use the theme key "info" which maps to "dim cyan"
+            hud_content,
+            title="[bold bright_magenta]🛡️  Guardian HQ[/bold bright_magenta]",
+            box=DOUBLE_EDGE,
+            border_style="bright_magenta",
+            padding=(1, 2),
             expand=False
         )
         self.console.print(panel)
+    
+    def _create_progress_bar(self, progress: float, width: int, color: str = "cyan") -> Text:
+        """Create a visual progress bar."""
+        filled = int(width * progress)
+        empty = width - filled
+        
+        bar = Text()
+        bar.append("█" * filled, style=f"bold {color}")
+        bar.append("░" * empty, style="dim")
+        return bar
