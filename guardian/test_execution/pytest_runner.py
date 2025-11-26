@@ -1,9 +1,13 @@
+import logging
 import subprocess
 import os
 import sys
 import time
+from pathlib import Path
 
 from typing import List, Optional # Added
+
+logger = logging.getLogger(__name__)
 
 def run_pytest(target_path: str, test_targets: Optional[List[str]] = None):
     """
@@ -35,12 +39,13 @@ def run_pytest(target_path: str, test_targets: Optional[List[str]] = None):
         return results
 
     # Determine pytest executable (try from venv first)
-    venv_bin_path = os.path.dirname(sys.executable)
-    pytest_executable = os.path.join(venv_bin_path, "pytest")
-
-    if not os.path.exists(pytest_executable):
+    venv_bin_path = Path(sys.executable).parent
+    pytest_candidate = venv_bin_path / "pytest"
+    if pytest_candidate.exists():
+        pytest_executable = str(pytest_candidate)
+    else:
         pytest_executable = "pytest" # Fallback to PATH
-        print(f"Warning: Could not find {pytest_executable} directly in venv bin. Trying 'pytest' from PATH.")
+        logger.warning("Could not find pytest executable in %s; falling back to PATH lookup.", venv_bin_path)
 
     cmd = [pytest_executable]
     if test_targets:
@@ -48,7 +53,7 @@ def run_pytest(target_path: str, test_targets: Optional[List[str]] = None):
     else:
         cmd.append(target_path) # Default to running on the whole target_path
     
-    print(f"Running pytest command: {' '.join(cmd)}")
+    logger.info("Running pytest command: %s", " ".join(cmd))
     start_time = time.time()
     
     try:
@@ -69,7 +74,7 @@ def run_pytest(target_path: str, test_targets: Optional[List[str]] = None):
         # Pytest exit code 5 means no tests were collected.
         # For the 'success' flag of the runner, we consider these successful executions of pytest.
         # Other codes (1=failures, 2=interrupted, 3=internal error, 4=usage error) mean not successful.
-        if process.returncode == 0 or process.returncode == 5:
+        if process.returncode in (0, 5):
             results["success"] = True
         else:
             results["success"] = False # Explicitly false for other cases, including test failures (exit code 1)
@@ -78,9 +83,9 @@ def run_pytest(target_path: str, test_targets: Optional[List[str]] = None):
             # This will be made more robust later, possibly with pytest-json-report
             # For now, just a placeholder for summary parsing
             if process.stdout:
-                print("Pytest stdout:\n", process.stdout[-500:]) # Print last 500 chars of stdout for brevity
+                logger.debug("Pytest stdout tail:\n%s", process.stdout[-500:])
             if process.stderr:
-                 print("Pytest stderr:\n", process.stderr)
+                logger.debug("Pytest stderr:\n%s", process.stderr)
 
 
     except FileNotFoundError:
@@ -89,6 +94,7 @@ def run_pytest(target_path: str, test_targets: Optional[List[str]] = None):
     except Exception as e:
         results["stderr"] = f"An unexpected error occurred while running pytest: {e}"
         results["exit_code"] = -2 # Indicate unexpected error
+        logger.exception("Unexpected error while running pytest.")
         
     end_time = time.time()
     results["duration_seconds"] = round(end_time - start_time, 3)

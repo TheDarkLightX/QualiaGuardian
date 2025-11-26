@@ -16,6 +16,14 @@ logger = logging.getLogger(__name__)
 # Cache for test metric contributions to avoid re-computation
 _metric_cache: Dict[str, float] = {}
 
+# Lightweight placeholder cache of tests to keep legacy callers functional
+# without requiring an expensive discovery step. Paths are relative and can
+# be replaced at runtime by real data if needed.
+TEST_CACHE: Dict[Path, float] = {
+    Path("tests/test_sample_quality.py"): 0.5,
+    Path("tests/test_sample_performance.py"): 0.4,
+}
+
 
 class MetricEvaluator:
     """Evaluates test contributions to quality metrics."""

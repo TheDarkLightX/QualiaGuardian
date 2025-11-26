@@ -36,7 +36,7 @@ class TestGamifyCrownCommand(unittest.TestCase):
         if self.test_project_dir.exists():
             shutil.rmtree(self.test_project_dir)
 
-    @patch('guardian_ai_tool.guardian.cli.evaluate_subset') # Patching where it's used by gamify_crown
+    @patch('guardian_ai_tool.guardian.core.api.evaluate_subset')
     def test_gamify_crown_simple_run(self, mock_evaluate_subset: MagicMock):
         """Test basic execution of gamify crown with mocked evaluation."""
 
@@ -72,65 +72,60 @@ class TestGamifyCrownCommand(unittest.TestCase):
                 score += 0.1 # Synergy
             return round(score, 2)
 
-        # Correct patch target based on where evaluate_subset is imported and called from by gamify_crown's logic
-        with patch('guardian_ai_tool.guardian.core.api.evaluate_subset', side_effect=side_effect_evaluate_subset) as patched_eval_subset:
-            result = self.runner.invoke(app, [
-                "gamify", "crown",
-                "--project-root", str(self.test_project_dir), # Use the temp project
-                "--test-dir", "tests", # Relative to project_root
-                "--top", "2",
-                "--permutations", "20" # Low permutations for faster test
-            ])
+        mock_evaluate_subset.side_effect = side_effect_evaluate_subset
 
-            self.assertEqual(result.exit_code, 0, f"CLI Error: {result.stdout}")
-            
-            # Expected Shapley values (approximate due to low permutations, but order should hold)
-            # A: (0.5) + (0.5+0.3+0.1 - (0.3+0.1)) / 2 = 0.5 + (0.9 - 0.4)/2 = 0.5 + 0.25 = 0.75 (Incorrect manual calc)
-            # Let's re-evaluate based on the side_effect:
-            # v({}) = 0
-            # v({A}) = 0.5
-            # v({B}) = 0.3
-            # v({C}) = 0.1
-            # v({A,B}) = 0.5 + 0.3 + 0.1 = 0.9
-            # v({A,C}) = 0.5 + 0.1 = 0.6
-            # v({B,C}) = 0.3 + 0.1 = 0.4
-            # v({A,B,C}) = 0.5 + 0.3 + 0.1 + 0.1 = 1.0
+        result = self.runner.invoke(app, [
+            "gamify", "crown",
+            "--project-root", str(self.test_project_dir), # Use the temp project
+            "--test-dir", "tests", # Relative to project_root
+            "--top", "2",
+            "--permutations", "20" # Low permutations for faster test
+        ])
 
-            # Shapley(A):
-            # Permutations: ABC, ACB, BAC, BCA, CAB, CBA
-            # A is first (2/6): v(A)-v({}) = 0.5
-            # A is second (2/6): (v(AB)-v(B) + v(AC)-v(C)) / 2 = ( (0.9-0.3) + (0.6-0.1) )/2 = (0.6+0.5)/2 = 0.55
-            # A is third (2/6): (v(ABC)-v(BC)) = (1.0 - 0.4) = 0.6
-            # Avg for A = (0.5 * 2 + 0.55 * 2 + 0.6 * 2) / 6 = (1 + 1.1 + 1.2)/6 = 3.3/6 = 0.55
+        self.assertEqual(result.exit_code, 0, f"CLI Error: {result.stdout}")
+        
+        # Expected Shapley values (approximate due to low permutations, but order should hold)
+        # A: (0.5) + (0.5+0.3+0.1 - (0.3+0.1)) / 2 = 0.5 + (0.9 - 0.4)/2 = 0.5 + 0.25 = 0.75 (Incorrect manual calc)
+        # Let's re-evaluate based on the side_effect:
+        # v({}) = 0
+        # v({A}) = 0.5
+        # v({B}) = 0.3
+        # v({C}) = 0.1
+        # v({A,B}) = 0.5 + 0.3 + 0.1 = 0.9
+        # v({A,C}) = 0.5 + 0.1 = 0.6
+        # v({B,C}) = 0.3 + 0.1 = 0.4
+        # v({A,B,C}) = 0.5 + 0.3 + 0.1 + 0.1 = 1.0
 
-            # Shapley(B):
-            # B is first (2/6): v(B)-v({}) = 0.3
-            # B is second (2/6): (v(AB)-v(A) + v(CB)-v(C))/2 = ((0.9-0.5) + (0.4-0.1))/2 = (0.4+0.3)/2 = 0.35
-            # B is third (2/6): (v(ABC)-v(AC)) = (1.0 - 0.6) = 0.4
-            # Avg for B = (0.3*2 + 0.35*2 + 0.4*2)/6 = (0.6 + 0.7 + 0.8)/6 = 2.1/6 = 0.35
-            
-            # Shapley(C):
-            # C is first (2/6): v(C)-v({}) = 0.1
-            # C is second (2/6): (v(AC)-v(A) + v(BC)-v(B))/2 = ((0.6-0.5) + (0.4-0.3))/2 = (0.1+0.1)/2 = 0.1
-            # C is third (2/6): (v(ABC)-v(AB)) = (1.0 - 0.9) = 0.1
-            # Avg for C = (0.1*2 + 0.1*2 + 0.1*2)/6 = 0.6/6 = 0.1
+        # Shapley(A):
+        # Permutations: ABC, ACB, BAC, BCA, CAB, CBA
+        # A is first (2/6): v(A)-v({}) = 0.5
+        # A is second (2/6): (v(AB)-v(B) + v(AC)-v(C)) / 2 = ( (0.9-0.3) + (0.6-0.1) )/2 = (0.6+0.5)/2 = 0.55
+        # A is third (2/6): (v(ABC)-v(BC)) = (1.0 - 0.4) = 0.6
+        # Avg for A = (0.5 * 2 + 0.55 * 2 + 0.6 * 2) / 6 = (1 + 1.1 + 1.2)/6 = 3.3/6 = 0.55
 
-            # Expected order: A > B > C
-            # With --top 2, we expect A and B.
-            
-            output = result.stdout
-            self.assertIn("Top 2 Most Valuable Tests", output)
-            self.assertIn(str(self.test_file_a_path.resolve()), output) # A should be there
-            self.assertIn(str(self.test_file_b_path.resolve()), output) # B should be there
-            self.assertNotIn(str(self.test_file_c_path.resolve()), output) # C should not be in top 2
+        # Shapley(B):
+        # B is first (2/6): v(B)-v({}) = 0.3
+        # B is second (2/6): (v(AB)-v(A) + v(CB)-v(C))/2 = ((0.9-0.5) + (0.4-0.1))/2 = (0.4+0.3)/2 = 0.35
+        # B is third (2/6): (v(ABC)-v(AC)) = (1.0 - 0.6) = 0.4
+        # Avg for B = (0.3*2 + 0.35*2 + 0.4*2)/6 = (0.6 + 0.7 + 0.8)/6 = 2.1/6 = 0.35
+        
+        # Shapley(C):
+        # C is first (2/6): v(C)-v({}) = 0.1
+        # C is second (2/6): (v(AC)-v(A) + v(BC)-v(B))/2 = ((0.6-0.5) + (0.4-0.3))/2 = (0.1+0.1)/2 = 0.1
+        # C is third (2/6): (v(ABC)-v(AB)) = (1.0 - 0.9) = 0.1
+        # Avg for C = (0.1*2 + 0.1*2 + 0.1*2)/6 = 0.6/6 = 0.1
 
-            # Check relative order and approximate values (can be tricky with sampling)
-            # This requires parsing the table from output, which is more involved.
-            # For now, presence and absence is a good start.
-            # A more robust test would parse the table or check logs for calculated Shapley values.
-            
-            # Verify evaluate_subset was called multiple times (due to permutations)
-            self.assertTrue(patched_eval_subset.call_count > 0)
+        # Expected order: A > B > C
+        # With --top 2, we expect A and B.
+
+        output = result.stdout
+        self.assertIn("Top 2 Most Valuable Tests", output)
+        self.assertIn(str(self.test_file_a_path.resolve()), output) # A should be there
+        self.assertIn(str(self.test_file_b_path.resolve()), output) # B should be there
+        self.assertNotIn(str(self.test_file_c_path.resolve()), output) # C should not be in top 2
+
+        # Verify evaluate_subset was called multiple times (due to permutations)
+        self.assertTrue(mock_evaluate_subset.call_count > 0)
 
 
     @patch('guardian_ai_tool.guardian.core.api.evaluate_subset')
