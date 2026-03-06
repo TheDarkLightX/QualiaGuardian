@@ -7,6 +7,7 @@ import math
 import logging
 import yaml
 from dataclasses import dataclass, field
+from pathlib import Path
 from typing import Dict, Any, Optional, List
 
 # Assuming QualityConfig and its nested configs are in .etes or a renamed quality_config.py
@@ -15,6 +16,11 @@ from typing import Dict, Any, Optional, List
 from .etes import OSQIWeightsConfig # To be used by OSQICalculator
 
 logger = logging.getLogger(__name__)
+
+
+def _default_chs_thresholds_path() -> str:
+    """Return the packaged CHS thresholds path."""
+    return str(Path(__file__).resolve().parents[2] / "config" / "chs_thresholds.yml")
 
 @dataclass
 class OSQIWeights:
@@ -65,7 +71,7 @@ class OSQICalculator:
 
     def __init__(self,
                  osqi_weights: OSQIWeightsConfig,
-                 chs_thresholds_path: str = "guardian_ai_tool/config/chs_thresholds.yml",
+                 chs_thresholds_path: str = _default_chs_thresholds_path(),
                  wasserstein_90th_percentile: Optional[float] = None):
         """
         Initializes the OSQI calculator.

@@ -21,7 +21,7 @@ from unittest.mock import Mock, patch, MagicMock
 import json
 
 # Add guardian to path
-guardian_path = os.path.join(os.path.dirname(__file__), '..', '..', 'guardian_ai_tool', 'guardian')
+guardian_path = str(Path(__file__).resolve().parents[2])
 sys.path.insert(0, guardian_path)
 
 from guardian.core.tes import get_etes_grade, calculate_etes_v2 # calculate_tes removed, get_tes_grade renamed

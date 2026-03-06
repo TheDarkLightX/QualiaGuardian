@@ -26,14 +26,12 @@ try:
     STATSMODELS_AVAILABLE = True
 except ImportError:
     STATSMODELS_AVAILABLE = False
-    warnings.warn("statsmodels not available. Some features will be limited.")
 
 try:
     import ruptures as rpt
     RUPTURES_AVAILABLE = True
 except ImportError:
     RUPTURES_AVAILABLE = False
-    warnings.warn("ruptures not available. Change point detection will be limited.")
 
 
 class DecayType(Enum):

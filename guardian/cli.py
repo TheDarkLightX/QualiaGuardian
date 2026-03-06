@@ -23,10 +23,8 @@ from guardian.evolution.adaptive_emt import AdaptiveEMT # Added for ec-evolve
 from guardian.evolution.types import EvolutionHistory # Added for ec-evolve
 from guardian.history import HistoryManager # Added for gamify status
 from guardian.analytics.shapley import calculate_shapley_values, TestId # Added for gamify crown
-# from guardian.analytics.metric_stubs import metric_evaluator_stub, TEST_CACHE # No longer directly used by crown
 from guardian.core.api import evaluate_subset # Added for Layer 1 Shapley
 from guardian.evolution.smart_mutator import Mutant # For type hinting the cache
-from guardian.analytics.metric_stubs import TEST_CACHE # Still used for test_ids source in S1
 
 # Define logger at module level
 logger = logging.getLogger(__name__)
@@ -137,8 +135,6 @@ def gamify_crown(
     formatter = OutputFormatter(config=formatter_config)
     logger.info(f"Calculating Shapley values for tests. This might take a moment (permutations={permutations})...")
 
-    # For S1 Layer 0, we use the TEST_CACHE keys as the list of "all tests".
-    # A real implementation would scan test_dir or use a test discovery mechanism.
     # Discover actual test files from the test_dir
     # For simplicity, collect .py files starting with "test_".
     # A more robust discovery might use pytest --collect-only and parse output.
@@ -198,8 +194,13 @@ def gamify_crown(
         sorted_tests = sorted(shapley_results.items(), key=lambda item: item[1], reverse=True)
         top_tests_data = []
         for i, (test_id, value) in enumerate(sorted_tests[:top_n]):
-            # Convert Path to str for display if it's a Path object
-            display_test_id = str(test_id) if isinstance(test_id, Path) else test_id
+            if isinstance(test_id, Path):
+                try:
+                    display_test_id = str(test_id.relative_to(project_root))
+                except ValueError:
+                    display_test_id = str(test_id)
+            else:
+                display_test_id = test_id
             top_tests_data.append([str(i + 1), display_test_id, f"{value:.4f}"])
         
         if not top_tests_data:
@@ -831,8 +832,8 @@ def analyze_project(project_path, user_stories_file_path=None, max_function_line
         
     return results
 
-def main():
-    """Enhanced main function using professional CLI interface"""
+def _build_quality_parser() -> argparse.ArgumentParser:
+    """Build the legacy quality-analysis parser."""
     parser = argparse.ArgumentParser(
         description="Guardian Code Quality & Security Analysis Tool",
         formatter_class=argparse.RawDescriptionHelpFormatter,
@@ -972,10 +973,27 @@ Examples:
         default=None,
         help="Path to a YAML configuration file for Guardian settings (e.g., sensor configurations)."
     )
- 
-    args = parser.parse_args()
+    return parser
 
-    # Use professional CLI interface
+
+def main(argv: Optional[List[str]] = None):
+    """
+    Unified Guardian entrypoint.
+
+    Supports:
+    - legacy quality mode: `guardian /path/to/project ...`
+    - explicit alias: `guardian quality /path/to/project ...`
+    - Typer subcommands: `guardian gamify ...`, `guardian ec-evolve ...`, `guardian self-improve ...`
+    """
+    args_list = list(sys.argv[1:] if argv is None else argv)
+    if args_list and args_list[0] in {"gamify", "ec-evolve", "self-improve"}:
+        return app(prog_name="guardian", args=args_list)
+
+    if args_list and args_list[0] == "quality":
+        args_list = args_list[1:]
+
+    parser = _build_quality_parser()
+    args = parser.parse_args(args_list)
     return run_analysis(args)
 
 
@@ -1150,5 +1168,4 @@ def run_analysis(args):
 analyze_project = analyze_project  # Reference to the existing function
 
 if __name__ == "__main__":
-    # main() # Old argparse entry point - TEMPORARILY RE-ENABLED FOR TESTING
-    app() # New Typer entry point - TEMPORARILY DISABLED
+    raise SystemExit(main())

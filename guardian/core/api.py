@@ -85,7 +85,7 @@ if __name__ == '__main__':
     # Example usage (requires a dummy project and tests)
     # Ensure this example is updated to reflect actual project structure if used for testing.
     # When running this script directly for testing, use:
-    # python -m guardian_ai_tool.guardian.core.api
+    # python -m guardian.core.api
     # from the project root directory (/home/trevormoc/Downloads/Qualia).
     logging.basicConfig(
         level=logging.DEBUG, # Use DEBUG for more verbose output during local testing

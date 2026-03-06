@@ -3,7 +3,7 @@ from unittest.mock import MagicMock
 from pathlib import Path
 from typing import List, Dict
 
-from guardian_ai_tool.guardian.analytics.shapley import calculate_shapley_values, TestId
+from guardian.analytics.shapley import calculate_shapley_values, TestId
 
 class TestShapleyValues(unittest.TestCase):
 

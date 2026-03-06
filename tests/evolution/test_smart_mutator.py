@@ -8,7 +8,7 @@ import shutil
 
 # Assuming MutationOperatorVisitor and MutantType are in this path
 # Adjust if the actual location is different after refactoring or if they are in types.py
-from guardian_ai_tool.guardian.evolution.smart_mutator import MutationOperatorVisitor, MutantType, SmartMutator
+from guardian.evolution.smart_mutator import MutationOperatorVisitor, MutantType, SmartMutator
 
 class TestMutationOperatorVisitor(unittest.TestCase):
 

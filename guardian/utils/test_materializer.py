@@ -2,7 +2,7 @@ import logging
 from pathlib import Path
 from typing import List
 
-from guardian_ai_tool.guardian.evolution.types import TestIndividual
+from guardian.evolution.types import TestIndividual
 
 logger = logging.getLogger(__name__)
 

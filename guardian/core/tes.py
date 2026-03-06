@@ -1,6 +1,7 @@
 # Enhanced Test Effectiveness Score (TES) calculation logic with E-TES v2.0 integration.
 
 import logging
+from pathlib import Path
 from typing import Dict, Any, Optional, Tuple, Union
 from .etes import ETESCalculator, QualityConfig, ETESComponents, ETESGrade, BETESSettingsV31 # Added BETESSettingsV31
 from .betes import BETESCalculator, BETESComponents as BETESComponentsV3, classify_betes
@@ -20,6 +21,11 @@ from guardian.sensors import flakiness as flakiness_sensor
 
 
 logger = logging.getLogger(__name__)
+
+
+def _default_chs_thresholds_path() -> str:
+    """Return the packaged CHS thresholds path."""
+    return str(Path(__file__).resolve().parents[2] / "config" / "chs_thresholds.yml")
 
 
 # Removed placeholder _get_raw_metrics_for_betes as CLI now calls sensors.
@@ -98,9 +104,7 @@ def _calculate_osqi(
     )
 
     # Calculate OSQI
-    chs_thresholds_path = getattr(
-        config, 'chs_thresholds_path', "guardian_ai_tool/config/chs_thresholds.yml"
-    )
+    chs_thresholds_path = getattr(config, 'chs_thresholds_path', _default_chs_thresholds_path())
     osqi_calculator = OSQICalculator(
         osqi_weights=config.osqi_weights,
         chs_thresholds_path=chs_thresholds_path

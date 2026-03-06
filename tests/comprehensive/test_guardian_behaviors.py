@@ -19,7 +19,7 @@ from pathlib import Path
 from unittest.mock import Mock, patch
 
 # Add guardian to path
-guardian_path = os.path.join(os.path.dirname(__file__), '..', '..', 'guardian_ai_tool', 'guardian')
+guardian_path = str(Path(__file__).resolve().parents[2])
 sys.path.insert(0, guardian_path)
 
 from guardian.cli.analyzer import ProjectAnalyzer

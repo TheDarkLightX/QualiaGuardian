@@ -4,11 +4,11 @@ import time
 from pathlib import Path
 import os # For creating dummy files/dirs if needed by SmartMutator
 
-from guardian_ai_tool.guardian.evolution.adaptive_emt import AdaptiveEMT
-from guardian_ai_tool.guardian.budget import Budget
-from guardian_ai_tool.guardian.utils.pid_controller import PIDController
-from guardian_ai_tool.guardian.evolution.fitness import FitnessEvaluator # For type hinting
-from guardian_ai_tool.guardian.evolution.types import TestIndividual # For return type
+from guardian.evolution.adaptive_emt import AdaptiveEMT
+from guardian.budget import Budget
+from guardian.utils.pid_controller import PIDController
+from guardian.evolution.fitness import FitnessEvaluator # For type hinting
+from guardian.evolution.types import TestIndividual # For return type
 
 # Minimal FitnessEvaluator mock that can be instantiated
 class MockFitnessEvaluator:

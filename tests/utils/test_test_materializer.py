@@ -4,8 +4,8 @@ import tempfile
 import shutil
 import time # For TestIndividual ID generation if not mocked
 
-from guardian_ai_tool.guardian.evolution.types import TestIndividual
-from guardian_ai_tool.guardian.utils.test_materializer import materialize_tests
+from guardian.evolution.types import TestIndividual
+from guardian.utils.test_materializer import materialize_tests
 
 class TestTestMaterializer(unittest.TestCase):
 

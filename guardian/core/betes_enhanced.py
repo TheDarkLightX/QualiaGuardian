@@ -11,7 +11,7 @@ Integrates:
 import math
 import time
 from dataclasses import dataclass, field
-from typing import Dict, Any, Optional, List, Tuple
+from typing import Dict, Any, Optional, List, Set, Tuple
 from .betes import BETESCalculator, BETESComponents, BETESWeights, BETESSettingsV31
 from .uncertainty_quantification import (
     BayesianQualityCalculator, BayesianMetric, UncertaintyInterval,

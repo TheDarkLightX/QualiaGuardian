@@ -80,7 +80,7 @@ QualiaGuardian is under active development. Key milestones achieved include:
 1.  **Clone the repository:**
     ```bash
     git clone https://github.com/TheDarkLightX/QualiaGuardian.git
-    cd QualiaGuardian/guardian_ai_tool
+    cd QualiaGuardian
     ```
 
 2.  **Create and activate a virtual environment:**
@@ -137,7 +137,7 @@ QualiaGuardian provides a rich CLI.
 
 ## Project Structure
 
-*   `guardian_ai_tool/guardian/`: Core library code.
+*   `guardian/`: Core library code.
     *   `agent/`: Autonomous agent components (LLM wrapper, optimizer).
     *   `analysis/`: Static and security analysis modules.
     *   `analytics/`: Metrics and scoring logic (TES, bE-TES, OSQI, Shapley).
@@ -146,9 +146,9 @@ QualiaGuardian provides a rich CLI.
     *   `evolution/`: Evolutionary computation components (SmartMutator, AdaptiveEMT).
     *   `sensors/`: Modules for gathering specific metrics (mutation, churn, etc.).
     *   `history.py`: Database interaction layer (`HistoryManager`).
-*   `guardian_ai_tool/tests/`: Unit and integration tests.
-*   `guardian_ai_tool/config/`: Default configuration files.
-*   `guardian_ai_tool/docs/`: Detailed design documents and plans.
+*   `tests/`: Unit and integration tests.
+*   `config/`: Default configuration files.
+*   `docs/`: Detailed design documents and plans.
 
 ## Autonomous Quality-Optimizer Agent
 

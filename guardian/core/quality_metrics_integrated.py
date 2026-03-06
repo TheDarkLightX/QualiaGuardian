@@ -14,7 +14,7 @@ Brings together all advanced features:
 - Model selection
 """
 
-from typing import Dict, Any, Optional, List
+from typing import Dict, Any, Optional, List, Set
 from dataclasses import dataclass, field
 import numpy as np
 import logging

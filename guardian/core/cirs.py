@@ -290,7 +290,7 @@ def compare_cirs_vs_betes(
         'difference': cirs_score - betes_risk,
         'interpretation': {
             'cirs': 'Predicts WHERE problems will occur (change frequency + complexity + test quality)',
-            'betes': 'Measures CURRENT test effectiveness (doesn't predict future issues)',
+            'betes': "Measures CURRENT test effectiveness (doesn't predict future issues)",
             'advantage': 'CIRS is more predictive and actionable - tells you what to fix'
         }
     }
