@@ -201,8 +201,15 @@ class ProjectAnalyzer:
                 relative_path = os.path.relpath(file_path, project_path)
                 
                 try:
-                    self._analyze_single_file(file_path, relative_path, metrics, details, 
-                                            complexity_sum, complexity_count)
+                    file_complexity = self._analyze_single_file(
+                        file_path,
+                        relative_path,
+                        metrics,
+                        details,
+                    )
+                    if file_complexity > 0:
+                        complexity_sum += file_complexity
+                        complexity_count += 1
                     self.total_files_analyzed += 1
                     
                 except Exception as e:
@@ -233,10 +240,14 @@ class ProjectAnalyzer:
             'status': 'analysis_complete' if not self.errors_encountered else 'analysis_partial'
         }
     
-    def _analyze_single_file(self, file_path: str, relative_path: str, 
-                           metrics: Dict[str, Any], details: Dict[str, Any],
-                           complexity_sum: float, complexity_count: int):
-        """Analyze a single Python file"""
+    def _analyze_single_file(
+        self,
+        file_path: str,
+        relative_path: str,
+        metrics: Dict[str, Any],
+        details: Dict[str, Any],
+    ) -> float:
+        """Analyze a single Python file and return its average complexity."""
         with open(file_path, 'r', encoding='utf-8') as f:
             content = f.read()
         
@@ -246,9 +257,6 @@ class ProjectAnalyzer:
         
         # Calculate complexity
         file_complexity = calculate_cyclomatic_complexity(content)
-        if file_complexity > 0:
-            complexity_sum += file_complexity
-            complexity_count += 1
         
         # Find long functions
         long_functions = find_long_elements(content, self.max_function_lines)
@@ -270,6 +278,8 @@ class ProjectAnalyzer:
             imp['file'] = relative_path
             details['unused_imports_details_list'].append(imp)
         metrics['unused_imports_count'] += len(unused_imports)
+
+        return file_complexity
     
     def _analyze_security(self, project_path: str) -> Dict[str, Any]:
         """Perform security analysis"""
